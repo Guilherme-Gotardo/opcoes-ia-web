@@ -37,11 +37,25 @@ Precisa da API do projeto principal no ar:
 
 ```bash
 # no repositório opcoes-ia
-python -m src.api          # (a criar — ver change `expose-portfolio-api`)
+python -m src.api          # sobe em http://127.0.0.1:8000
 
 # aqui
 npm install
-npm run dev
+npm run dev                # http://localhost:5173
+```
+
+## Tipos gerados do contrato
+
+`src/api/schema.d.ts` é GERADO do OpenAPI que a API publica — nunca edite à
+mão. Quando o contrato mudar no Python:
+
+```bash
+# no repositório opcoes-ia
+python -m src.api --schema openapi.json
+
+# aqui
+npm run gerar-tipos
+npm run build              # um campo renomeado quebra AQUI, não em runtime
 ```
 
 ## Scripts
@@ -55,5 +69,6 @@ npm run dev
 
 ## Estado
 
-Scaffold inicial. A API que ele consome ainda não existe — está sendo
-planejada no repositório principal.
+Tela de carteira consumindo a API de leitura (`/carteira`), com patrimônio a
+mercado, preço médio ao lado do preço de mercado e aviso de patrimônio
+parcial. Próximo: sugestões, desfecho da avaliação e as telas de escrita.
