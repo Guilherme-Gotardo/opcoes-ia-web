@@ -165,12 +165,28 @@ function FormAtivo({ aoMudar }: { aoMudar: () => void }) {
   );
 }
 
-function FormPosicao({ ativos, aoMudar }: { ativos: Ativo[] | null; aoMudar: () => void }) {
-  const [tipoAtivo, setTipoAtivo] = useState<"ACAO" | "OPCAO">("ACAO");
-  const [direcao, setDirecao] = useState<"comprada" | "lancada">("comprada");
+function FormPosicao({
+  ativos,
+  tipoAtivo,
+  aoMudar,
+}: {
+  ativos: Ativo[] | null;
+  /** Fixo pela tela: em Ações registra ação, em Opções registra opção. */
+  tipoAtivo: "ACAO" | "OPCAO";
+  aoMudar: () => void;
+}) {
+  const ehOpcao = tipoAtivo === "OPCAO";
+  const [direcao, setDirecao] = useState<"comprada" | "lancada">(
+    // Opção em venda coberta é lançada; ação é comprada. O padrão certo
+    // poupa um clique e evita o erro mais caro deste formulário.
+    ehOpcao ? "lancada" : "comprada",
+  );
   const [ticker, setTicker] = useState("");
   const [quantidade, setQuantidade] = useState("");
   const [precoMedio, setPrecoMedio] = useState("");
+  const [objeto, setObjeto] = useState("");
+  const [strike, setStrike] = useState("");
+  const [vencimento, setVencimento] = useState("");
   const [aviso, setAviso] = useState<Aviso>(null);
   const [enviando, setEnviando] = useState(false);
 
@@ -191,6 +207,12 @@ function FormPosicao({ ativos, aoMudar }: { ativos: Ativo[] | null; aoMudar: () 
           tipo_ativo: tipoAtivo,
           quantidade: qtd,
           preco_medio: Number(precoMedio),
+          // Sem estes três a opção entra na carteira mas nasce fora do
+          // acompanhamento: não há como comparar strike com cotação nem
+          // contar dias para o vencimento.
+          ticker_objeto: ehOpcao && objeto ? objeto : null,
+          strike: ehOpcao && strike ? Number(strike) : null,
+          vencimento: ehOpcao && vencimento ? vencimento : null,
         });
         setAviso({
           tom: "ok",
@@ -199,6 +221,8 @@ function FormPosicao({ ativos, aoMudar }: { ativos: Ativo[] | null; aoMudar: () 
         setTicker("");
         setQuantidade("");
         setPrecoMedio("");
+        setStrike("");
+        setVencimento("");
         aoMudar();
       } catch (err) {
         setAviso({ tom: "erro", texto: err instanceof Error ? err.message : String(err) });
@@ -206,34 +230,20 @@ function FormPosicao({ ativos, aoMudar }: { ativos: Ativo[] | null; aoMudar: () 
         setEnviando(false);
       }
     },
-    [ticker, tipoAtivo, direcao, quantidade, precoMedio, aoMudar],
+    [ticker, tipoAtivo, ehOpcao, direcao, quantidade, precoMedio,
+     objeto, strike, vencimento, aoMudar],
   );
 
   return (
     <form className="form" onSubmit={enviar}>
-      <h3 className="form__titulo">Registrar posição</h3>
+      <h3 className="form__titulo">
+        {ehOpcao ? "Registrar opção" : "Registrar posição em ação"}
+      </h3>
       <p className="form__nota">
         Escrituração do que você já tem. Nada é enviado para a corretora.
       </p>
 
       <div className="form__linha">
-        <div className="form__campo">
-          <span>O que é</span>
-          <div className="filtros" role="group" aria-label="Tipo da posição">
-            {(["ACAO", "OPCAO"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                className={`filtro${tipoAtivo === t ? " filtro--ativo" : ""}`}
-                aria-pressed={tipoAtivo === t}
-                onClick={() => setTipoAtivo(t)}
-              >
-                {t === "ACAO" ? "Ação" : "Opção"}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div className="form__campo">
           <span>Direção</span>
           <div className="filtros" role="group" aria-label="Direção da posição">
@@ -257,8 +267,8 @@ function FormPosicao({ ativos, aoMudar }: { ativos: Ativo[] | null; aoMudar: () 
 
       <div className="form__linha">
         <label className="form__campo">
-          <span>{tipoAtivo === "ACAO" ? "Ticker" : "Código da opção"}</span>
-          {tipoAtivo === "ACAO" ? (
+          <span>{ehOpcao ? "Código da opção" : "Ticker"}</span>
+          {!ehOpcao ? (
             <select
               className="campo"
               value={ticker}
@@ -281,9 +291,9 @@ function FormPosicao({ ativos, aoMudar }: { ativos: Ativo[] | null; aoMudar: () 
               required
             />
           )}
-          {tipoAtivo === "OPCAO" && (
+          {ehOpcao && (
             <span className="form__ajuda">
-              Aqui vai o código da opção, que não é cadastrado como ativo.
+              O código da opção, que não é cadastrado como ativo.
             </span>
           )}
         </label>
@@ -303,7 +313,7 @@ function FormPosicao({ ativos, aoMudar }: { ativos: Ativo[] | null; aoMudar: () 
         </label>
 
         <label className="form__campo">
-          <span>Preço médio</span>
+          <span>{ehOpcao ? "Prêmio por opção" : "Preço médio"}</span>
           <input
             className="campo"
             type="number"
@@ -311,12 +321,69 @@ function FormPosicao({ ativos, aoMudar }: { ativos: Ativo[] | null; aoMudar: () 
             step="0.01"
             value={precoMedio}
             onChange={(e) => setPrecoMedio(e.target.value)}
-            placeholder="32.50"
+            placeholder={ehOpcao ? "1.15" : "32.50"}
             required
           />
-          <span className="form__ajuda">Base de custo, não valor de mercado.</span>
+          <span className="form__ajuda">
+            {ehOpcao
+              ? "Por opção, não pelo lote."
+              : "Base de custo, não valor de mercado."}
+          </span>
         </label>
       </div>
+
+      {/*
+        Sem estes campos a opção fica invisível para o acompanhamento — foi
+        exatamente o que aconteceu com as registradas antes deles existirem.
+        Não são obrigatórios no banco (posição antiga não os tem), mas a
+        tela pede porque registrar sem eles é registrar pela metade.
+      */}
+      {ehOpcao && (
+        <div className="form__linha">
+          <label className="form__campo">
+            <span>Ativo-objeto</span>
+            <select
+              className="campo"
+              value={objeto}
+              onChange={(e) => setObjeto(e.target.value)}
+              required
+            >
+              <option value="">Selecione…</option>
+              {(ativos ?? []).map((a) => (
+                <option key={a.ticker} value={a.ticker}>
+                  {a.ticker}
+                </option>
+              ))}
+            </select>
+            <span className="form__ajuda">A ação que esta opção cobre.</span>
+          </label>
+
+          <label className="form__campo">
+            <span>Strike</span>
+            <input
+              className="campo"
+              type="number"
+              min="0"
+              step="0.01"
+              value={strike}
+              onChange={(e) => setStrike(e.target.value)}
+              placeholder="42.00"
+              required
+            />
+          </label>
+
+          <label className="form__campo">
+            <span>Vencimento</span>
+            <input
+              className="campo"
+              type="date"
+              value={vencimento}
+              onChange={(e) => setVencimento(e.target.value)}
+              required
+            />
+          </label>
+        </div>
+      )}
 
       <div className="form__acoes">
         <button className="botao botao--primario" type="submit" disabled={enviando}>
@@ -428,9 +495,11 @@ function DialogoEncerrar({
 
 function ListaPosicoes({
   posicoes,
+  tipo,
   aoMudar,
 }: {
   posicoes: PosicaoAberta[] | null;
+  tipo: "ACAO" | "OPCAO";
   aoMudar: () => void;
 }) {
   const [encerrando, setEncerrando] = useState<number | null>(null);
@@ -455,10 +524,18 @@ function ListaPosicoes({
     [aoMudar],
   );
 
+  const doTipo = (posicoes ?? []).filter((p) => p.tipo_ativo === tipo);
+
   if (posicoes == null) return <Estado titulo="Carregando…" />;
-  if (posicoes.length === 0) {
+  if (doTipo.length === 0) {
     return (
-      <Estado titulo="Nenhuma posição em aberto">
+      <Estado
+        titulo={
+          tipo === "ACAO"
+            ? "Nenhuma posição em ação aberta"
+            : "Nenhuma opção em aberto"
+        }
+      >
         Registre a primeira no formulário acima.
       </Estado>
     );
@@ -467,7 +544,7 @@ function ListaPosicoes({
   return (
     <>
       <ul className="posicoes-abertas">
-        {posicoes.map((p) => (
+        {doTipo.map((p) => (
           <li key={p.id}>
             <div className="posicoes-abertas__id">
               <span className="tabela__ticker">{p.ticker}</span>
@@ -512,18 +589,35 @@ function ListaPosicoes({
   );
 }
 
-export function Cadastro({ ativos, posicoes, erro, aoMudar }: Props) {
+type PropsCadastro = Props & {
+  /** A tela decide a classe; o cadastro não pergunta mais. */
+  tipo: "ACAO" | "OPCAO";
+  /** Cadastrar ATIVO só faz sentido na tela de ações: `ativos` guarda
+   *  ação, FII e BDR — o código de uma opção não é linha lá. */
+  comCadastroDeAtivo?: boolean;
+};
+
+export function Cadastro({
+  ativos,
+  posicoes,
+  erro,
+  aoMudar,
+  tipo,
+  comCadastroDeAtivo = false,
+}: PropsCadastro) {
+  const abertas = (posicoes ?? []).filter((p) => p.tipo_ativo === tipo);
+
   return (
     <Cartao
-      id="cadastro"
+      id={tipo === "ACAO" ? "cadastro-acoes" : "cadastro-opcoes"}
       icone={<IconeCarteira />}
-      titulo="Cadastro da carteira"
+      titulo={tipo === "ACAO" ? "Cadastro de ações" : "Cadastro de opções"}
       nota="Espelho do que você já tem na corretora. Esta tela não envia ordem — registrar posição é escrituração."
       acoes={
         posicoes && (
           <Selo tom="neutro">
-            {numero(posicoes.length)}{" "}
-            {posicoes.length === 1 ? "posição aberta" : "posições abertas"}
+            {numero(abertas.length)}{" "}
+            {abertas.length === 1 ? "posição aberta" : "posições abertas"}
           </Selo>
         )
       }
@@ -535,12 +629,12 @@ export function Cadastro({ ativos, posicoes, erro, aoMudar }: Props) {
       ) : (
         <div className="cadastro">
           <div className="cadastro__formularios">
-            <FormAtivo aoMudar={aoMudar} />
-            <FormPosicao ativos={ativos} aoMudar={aoMudar} />
+            {comCadastroDeAtivo && <FormAtivo aoMudar={aoMudar} />}
+            <FormPosicao ativos={ativos} tipoAtivo={tipo} aoMudar={aoMudar} />
           </div>
           <div className="cadastro__lista">
-            <h3 className="form__titulo">Posições em aberto</h3>
-            <ListaPosicoes posicoes={posicoes} aoMudar={aoMudar} />
+            <h3 className="form__titulo">Em aberto</h3>
+            <ListaPosicoes posicoes={posicoes} tipo={tipo} aoMudar={aoMudar} />
           </div>
         </div>
       )}

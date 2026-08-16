@@ -35,7 +35,11 @@ type Props = {
 };
 
 export function Patrimonio({ carteira, executadoEm }: Props) {
-  const m = metricas(carteira);
+  // Só AÇÃO: `total_patrimonio` conta só ação (o valor da opção deriva das
+  // mesmas ações), então o custo e o resultado exibidos ao lado dele
+  // precisam cobrir a mesma coisa. Misturado, o prêmio de opção lançada era
+  // subtraído do custo das ações.
+  const m = metricas(carteira, "ACAO");
   const parcial = carteira.patrimonio_parcial;
 
   const direcao =

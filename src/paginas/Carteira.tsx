@@ -1,10 +1,14 @@
-/** Quanto eu tenho, e em quê. */
+/**
+ * Visão consolidada: quanto vale a carteira e onde está concentrada.
+ *
+ * As posições, uma a uma, moram nas telas de Ações e Opções — aqui fica só
+ * o que atravessa as duas classes.
+ */
 import { usePainelDaTela } from "../lib/telas";
 import { Cartao } from "../componentes/Cartao";
 import { Esqueleto, Estado } from "../componentes/Estado";
 import { IconeAlerta, IconeX } from "../componentes/Icones";
 import { Exposicao } from "../modulos/Exposicao";
-import { Investimentos } from "../modulos/Investimentos";
 import { Patrimonio } from "../modulos/Patrimonio";
 
 export function Carteira() {
@@ -52,7 +56,6 @@ export function Carteira() {
         carteira={carteira}
         executadoEm={painel.desfecho.dado?.executado_em ?? null}
       />
-      <Investimentos carteira={carteira} />
       <Exposicao carteira={carteira} />
     </>
   );

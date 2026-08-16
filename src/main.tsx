@@ -6,7 +6,8 @@ import App from "./App.tsx";
 import { Carteira } from "./paginas/Carteira";
 import { Estrategia } from "./paginas/Estrategia";
 import { Mercado } from "./paginas/Mercado";
-import { OperacoesPagina } from "./paginas/Operacoes";
+import { Acoes } from "./paginas/Acoes";
+import { Opcoes } from "./paginas/Opcoes";
 import "./index.css";
 
 /*
@@ -20,7 +21,8 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <Carteira /> },
-      { path: "operacoes", element: <OperacoesPagina /> },
+      { path: "acoes", element: <Acoes /> },
+      { path: "opcoes", element: <Opcoes /> },
       { path: "estrategia", element: <Estrategia /> },
       { path: "mercado", element: <Mercado /> },
       // Endereço desconhecido cai na carteira em vez de tela em branco.

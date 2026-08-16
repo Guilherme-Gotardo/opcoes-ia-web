@@ -48,13 +48,34 @@ export type Metricas = {
   ativosObjeto: number;
 };
 
-export function metricas(carteira: Carteira): Metricas {
+/**
+ * `tipo` restringe a apuração a uma classe de ativo.
+ *
+ * Sem ele, custo e resultado somavam ação com opção — grandezas que não se
+ * somam. O prêmio de uma opção LANÇADA entra com quantidade negativa, então
+ * ele era SUBTRAÍDO do custo das ações, e o total aparecia menor do que é.
+ * E as opções, que não têm cotação enquanto o ETL está bloqueado, entravam
+ * na contagem de "posições sem cotação" — um aviso sobre ações que na
+ * verdade falava de opções.
+ *
+ * O patrimônio já é só de ações no backend (o valor da opção deriva das
+ * mesmas ações, e somar seria contagem dupla); esta função passa a
+ * acompanhar essa decisão em vez de contrariá-la.
+ */
+export function metricas(
+  carteira: Carteira,
+  tipo?: "ACAO" | "OPCAO",
+): Metricas {
+  const posicoesDoTipo = tipo
+    ? carteira.posicoes.filter((p) => p.tipo_ativo === tipo)
+    : carteira.posicoes;
+
   let custoTotal = 0;
   let custoComCotacao = 0;
   let valorComCotacao = 0;
   let comCotacao = 0;
 
-  for (const p of carteira.posicoes) {
+  for (const p of posicoesDoTipo) {
     const custo = p.quantidade * p.preco_medio;
     custoTotal += custo;
 
@@ -83,9 +104,9 @@ export function metricas(carteira: Carteira): Metricas {
       resultado != null && custoComCotacao > 0
         ? (resultado / custoComCotacao) * 100
         : null,
-    posicoes: carteira.posicoes.length,
+    posicoes: posicoesDoTipo.length,
     comCotacao,
-    semCotacao: carteira.posicoes.length - comCotacao,
+    semCotacao: posicoesDoTipo.length - comCotacao,
     maiorExposicao: maior,
     ativosObjeto: exposicoes.length,
   };

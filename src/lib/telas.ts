@@ -10,14 +10,25 @@ import {
   IconeBussola,
   IconeCarteira,
   IconeGrafico,
+  IconeLista,
   IconeRelogio,
 } from "../componentes/Icones";
 import { useOutletContext } from "react-router-dom";
 
-/** A ordem do menu é a ordem da pergunta: tenho → opero → o sistema sugere → mercado. */
+/**
+ * A ordem do menu é a ordem da pergunta: quanto tenho no total (carteira),
+ * em quais ações, quais opções estou operando, o que o sistema sugere, e
+ * como o mercado se move.
+ *
+ * Ações e opções têm telas próprias porque são grandezas diferentes: numa,
+ * quantidade é lote e preço é cotação; na outra, quantidade é contrato
+ * lançado e "preço" é prêmio. O backend já as separa — só ação entra no
+ * patrimônio, para não contar duas vezes o mesmo valor.
+ */
 export const TELAS = [
   { caminho: "/", rotulo: "Carteira", Icone: IconeCarteira },
-  { caminho: "/operacoes", rotulo: "Operações", Icone: IconeRelogio },
+  { caminho: "/acoes", rotulo: "Ações", Icone: IconeLista },
+  { caminho: "/opcoes", rotulo: "Opções", Icone: IconeRelogio },
   { caminho: "/estrategia", rotulo: "Estratégia", Icone: IconeBussola },
   { caminho: "/mercado", rotulo: "Mercado", Icone: IconeGrafico },
 ] as const;

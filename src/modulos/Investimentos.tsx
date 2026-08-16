@@ -1,5 +1,12 @@
 /**
- * Módulo de investimentos — as posições, uma a uma.
+ * Posições em carteira, uma a uma, de UM tipo de ativo.
+ *
+ * Ação e opção são grandezas diferentes o bastante para não dividirem
+ * tabela: numa, quantidade é lote e preço é cotação; na outra, quantidade
+ * é contrato lançado e "preço" é prêmio recebido. Misturadas, a coluna
+ * "valor a mercado" somava coisas que não se somam — e o próprio backend
+ * já separa, contando só ação no patrimônio para não fazer contagem dupla
+ * (o valor da opção deriva das mesmas ações).
  *
  * A regra mais importante desta tabela: **preço médio é custo e aparece AO
  * LADO do preço de mercado, nunca no lugar dele.** As duas colunas coexistem
@@ -14,7 +21,6 @@ import { useMemo, useState } from "react";
 import type { Carteira, Posicao } from "../api/client";
 import { Ausente } from "../componentes/Ausente";
 import { Cartao } from "../componentes/Cartao";
-import { Comando } from "../componentes/Comando";
 import { Estado } from "../componentes/Estado";
 import { IconeAlerta, IconeLista } from "../componentes/Icones";
 import { metricas, resultadoDaPosicao } from "../lib/derivar";
@@ -79,21 +85,26 @@ const COLUNAS: { campo: Campo; rotulo: string; ajuda?: string; num?: boolean }[]
   { campo: "participacao", rotulo: "% carteira", num: true },
 ];
 
-export function Investimentos({ carteira }: { carteira: Carteira }) {
+type PropsInvestimentos = {
+  carteira: Carteira;
+  /** Qual classe esta tabela mostra. Sem isto ela mistura as duas. */
+  tipo: "ACAO" | "OPCAO";
+};
+
+export function Investimentos({ carteira, tipo }: PropsInvestimentos) {
   const [ordem, setOrdem] = useState<Ordem>({ campo: "valor", desc: true });
   const [busca, setBusca] = useState("");
-  const m = metricas(carteira);
+  const m = metricas(carteira, tipo);
   const total = carteira.total_patrimonio;
+  const doTipo = useMemo(
+    () => carteira.posicoes.filter((p) => p.tipo_ativo === tipo),
+    [carteira.posicoes, tipo],
+  );
 
   const posicoes = useMemo(() => {
     const termo = busca.trim().toUpperCase();
-    return carteira.posicoes
-      .filter(
-        (p) =>
-          termo === "" ||
-          p.ticker.toUpperCase().includes(termo) ||
-          p.tipo_ativo.toUpperCase().includes(termo),
-      )
+    return doTipo
+      .filter((p) => termo === "" || p.ticker.toUpperCase().includes(termo))
       .slice()
       .sort((a, b) =>
         comparar(
@@ -102,19 +113,23 @@ export function Investimentos({ carteira }: { carteira: Carteira }) {
           ordem.desc,
         ),
       );
-  }, [carteira.posicoes, ordem, busca, total]);
+  }, [doTipo, ordem, busca, total]);
 
   const alternar = (campo: Campo) =>
     setOrdem((o) => ({ campo, desc: o.campo === campo ? !o.desc : true }));
 
   return (
     <Cartao
-      id="investimentos"
+      id={tipo === "ACAO" ? "posicoes-acoes" : "posicoes-opcoes"}
       icone={<IconeLista />}
-      titulo="Investimentos"
-      nota="Preço médio é custo e fica ao lado do preço de mercado — nunca no lugar dele."
+      titulo={tipo === "ACAO" ? "Posições em ação" : "Posições em opção"}
+      nota={
+        tipo === "ACAO"
+          ? "Preço médio é custo e fica ao lado do preço de mercado — nunca no lugar dele."
+          : "Quantidade negativa é posição lançada. Estas posições NÃO entram no patrimônio: o valor delas deriva das mesmas ações já contadas."
+      }
       acoes={
-        carteira.posicoes.length > 4 && (
+        doTipo.length > 4 && (
           <input
             className="campo"
             type="search"
@@ -126,19 +141,19 @@ export function Investimentos({ carteira }: { carteira: Carteira }) {
         )
       }
     >
-      {carteira.posicoes.length === 0 ? (
+      {doTipo.length === 0 ? (
         <Estado
-          titulo="Nenhuma posição cadastrada"
-          acao={<Comando>python -m src.portfolio.manage add PETR4 ACAO 100 32.50</Comando>}
+          titulo={
+            tipo === "ACAO"
+              ? "Nenhuma posição em ação"
+              : "Nenhuma posição em opção"
+          }
         >
-          Registre a posição no repositório principal e ela aparece aqui. O ativo
-          precisa estar cadastrado antes — registrar posição de ticker desconhecido
-          falha.
+          Registre no cadastro abaixo e ela aparece aqui.
         </Estado>
       ) : posicoes.length === 0 ? (
         <Estado titulo={`Nenhuma posição corresponde a "${busca}"`}>
-          Limpe o filtro para ver as {numero(carteira.posicoes.length)} posições da
-          carteira.
+          Limpe o filtro para ver as {numero(doTipo.length)} posições.
         </Estado>
       ) : (
         <div className="tabela-rolagem">
@@ -235,6 +250,14 @@ export function Investimentos({ carteira }: { carteira: Carteira }) {
                 );
               })}
             </tbody>
+            {/*
+              A linha de total só existe para AÇÃO. Em opção não há o que
+              somar: "valor a mercado" e "% carteira" ficam vazios porque
+              opção não entra no patrimônio, e repetir o total das ações
+              aqui — que foi o que aconteceu antes desta guarda — mostrava
+              o número de outra classe como se fosse desta.
+            */}
+            {tipo === "ACAO" && (
             <tfoot>
               {/*
                 Só somam as colunas que fazem sentido somar. Quantidade e preço
@@ -262,11 +285,12 @@ export function Investimentos({ carteira }: { carteira: Carteira }) {
                 <td className="num">{m.comCotacao > 0 ? "100%" : "—"}</td>
               </tr>
             </tfoot>
+            )}
           </table>
         </div>
       )}
 
-      {carteira.posicoes.length > 0 && (
+      {tipo === "ACAO" && doTipo.length > 0 && (
         <p className="cartao__rodape">
           <span>
             Custo total da carteira: <strong>{brl(m.custoTotal)}</strong> — soma de
@@ -275,7 +299,17 @@ export function Investimentos({ carteira }: { carteira: Carteira }) {
         </p>
       )}
 
-      {m.semCotacao > 0 && (
+      {tipo === "OPCAO" && doTipo.length > 0 && (
+        <p className="cartao__rodape">
+          <span>
+            Prêmio total das posições em aberto:{" "}
+            <strong>{brl(Math.abs(m.custoTotal))}</strong>. O detalhe de cada
+            operação — strike, vencimento e desfechos — está em Operações, acima.
+          </span>
+        </p>
+      )}
+
+      {tipo === "ACAO" && m.semCotacao > 0 && (
         <p className="cartao__rodape cartao__rodape--obsoleto">
           <IconeAlerta className="rodape__icone" />
           <span>

@@ -74,10 +74,27 @@ cadastro escreve por três.
 
 | Tela | Módulos |
 |---|---|
-| `/` Carteira | Patrimônio, Investimentos, Exposição |
-| `/operacoes` Operações | Operações, Cadastro da carteira |
+| `/` Carteira | Patrimônio, Exposição — o que atravessa as duas classes |
+| `/acoes` Ações | Posições em ação, cadastro de ativo e de posição |
+| `/opcoes` Opções | Operações, posições em opção, cadastro de opção |
 | `/estrategia` Estratégia | Recomendações, Acompanhamento, Resultados |
 | `/mercado` Mercado | Gráfico, Tickers, Saúde da coleta |
+
+### Ação e opção não dividem tabela
+
+São grandezas diferentes: numa, quantidade é lote e preço é cotação; na
+outra, quantidade é contrato lançado e "preço" é prêmio recebido. O backend
+já as separa — `total_patrimonio` conta **só ação**, porque o valor de uma
+opção deriva das mesmas ações e somar seria contagem dupla.
+
+Misturadas na mesma tabela, dois números saíam errados e ninguém percebia: o
+prêmio de opção lançada (quantidade negativa) era **subtraído** do custo das
+ações, e as opções sem cotação entravam na contagem de "posições sem
+cotação" — um aviso sobre ações que na verdade falava de opções. `metricas()`
+passou a receber a classe.
+
+O cadastro de ATIVO fica só em Ações: `ativos` guarda ação, FII e BDR, e o
+código de uma opção não é linha lá — nem será.
 
 O agrupamento segue a pergunta, não a fonte: cada tela junta o que se olha
 ao mesmo tempo, mesmo vindo de endpoints diferentes. `usePainel` fica na
