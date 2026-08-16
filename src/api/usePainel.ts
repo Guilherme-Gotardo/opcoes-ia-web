@@ -16,7 +16,8 @@ import {
   type Cotacao,
   type Desfecho,
   type Ativo,
-  type Operacao,
+  type Operacoes,
+  type SaudeColeta,
   type Parametros,
   type PosicaoAberta,
   type Resultados,
@@ -44,7 +45,8 @@ export type Painel = {
   sugestoes: Recurso<Sugestao[]>;
   desfecho: Recurso<Desfecho>;
   resultados: Recurso<Resultados>;
-  operacao: Recurso<Operacao>;
+  saudeColeta: Recurso<SaudeColeta>;
+  operacoes: Recurso<Operacoes>;
   parametros: Recurso<Parametros>;
   ativos: Recurso<Ativo[]>;
   posicoesAbertas: Recurso<PosicaoAberta[]>;
@@ -62,7 +64,8 @@ export function usePainel(): Painel {
   const [sugestoes, setSugestoes] = useState<Recurso<Sugestao[]>>(vazio);
   const [desfecho, setDesfecho] = useState<Recurso<Desfecho>>(vazio);
   const [resultados, setResultados] = useState<Recurso<Resultados>>(vazio);
-  const [operacao, setOperacao] = useState<Recurso<Operacao>>(vazio);
+  const [saudeColeta, setSaudeColeta] = useState<Recurso<SaudeColeta>>(vazio);
+  const [operacoes, setOperacoes] = useState<Recurso<Operacoes>>(vazio);
   const [parametros, setParametros] = useState<Recurso<Parametros>>(vazio);
   const [ativos, setAtivos] = useState<Recurso<Ativo[]>>(vazio);
   const [posicoesAbertas, setPosicoesAbertas] = useState<Recurso<PosicaoAberta[]>>(vazio);
@@ -79,18 +82,20 @@ export function usePainel(): Painel {
       resolver(api.sugestoes()),
       resolver(api.desfecho()),
       resolver(api.resultados()),
-      resolver(api.operacao()),
+      resolver(api.saudeColeta()),
+      resolver(api.operacoes()),
       resolver(api.parametros()),
       resolver(api.ativos()),
       resolver(api.posicoes()),
-    ]).then(([c, q, s, d, r, o, p, at, pa]) => {
+    ]).then(([c, q, s, d, r, o, ops, p, at, pa]) => {
       if (cancelado) return;
       setCarteira(c);
       setCotacoes(q);
       setSugestoes(s);
       setDesfecho(d);
       setResultados(r);
-      setOperacao(o);
+      setSaudeColeta(o);
+      setOperacoes(ops);
       setParametros(p);
       setAtivos(at);
       setPosicoesAbertas(pa);
@@ -111,7 +116,8 @@ export function usePainel(): Painel {
     sugestoes,
     desfecho,
     resultados,
-    operacao,
+    saudeColeta,
+    operacoes,
     parametros,
     ativos,
     posicoesAbertas,
@@ -119,8 +125,8 @@ export function usePainel(): Painel {
     carregando,
     apiFora:
       buscadoEm != null &&
-      [carteira, cotacoes, sugestoes, desfecho, resultados, operacao,
-       parametros, ativos, posicoesAbertas].every((r) => r.erro != null),
+      [carteira, cotacoes, sugestoes, desfecho, resultados, saudeColeta,
+       operacoes, parametros, ativos, posicoesAbertas].every((r) => r.erro != null),
     atualizar,
   };
 }

@@ -22,8 +22,12 @@ export type EventoResultado = components["schemas"]["EventoResultadoResposta"];
 export type FonteResultado = components["schemas"]["FonteResultadoResposta"];
 export type PendenteConsolidacao =
   components["schemas"]["PendenteConsolidacaoResposta"];
+export type SaudeColeta = components["schemas"]["SaudeColetaResposta"];
+export type CanalColeta = components["schemas"]["CanalColetaResposta"];
+export type Operacoes = components["schemas"]["OperacoesResposta"];
 export type Operacao = components["schemas"]["OperacaoResposta"];
-export type Coleta = components["schemas"]["ColetaResposta"];
+export type Perna = components["schemas"]["PernaResposta"];
+export type Cenario = components["schemas"]["CenarioResposta"];
 export type Orcamento = components["schemas"]["OrcamentoResposta"];
 export type Parametros = components["schemas"]["ParametrosResposta"];
 export type Candles = components["schemas"]["CandlesResposta"];
@@ -83,7 +87,8 @@ export const api = {
   sugestoes: () => buscar<Sugestao[]>("/sugestoes"),
   desfecho: () => buscar<Desfecho>("/desfecho"),
   resultados: () => buscar<Resultados>("/resultados"),
-  operacao: () => buscar<Operacao>("/operacao"),
+  saudeColeta: () => buscar<SaudeColeta>("/saude-coleta"),
+  operacoes: () => buscar<Operacoes>("/operacoes"),
   parametros: () => buscar<Parametros>("/parametros"),
   ativos: () => buscar<Ativo[]>("/ativos"),
   posicoes: () => buscar<PosicaoAberta[]>("/posicoes"),
@@ -100,5 +105,9 @@ export const api = {
   cadastrarAtivo: (a: AtivoEntrada) => enviar<Ativo>("/ativos", a),
   registrarPosicao: (p: PosicaoEntrada) =>
     enviar<PosicaoCriada>("/posicoes", p),
-  encerrarPosicao: (id: number) => enviar<null>(`/posicoes/${id}/encerrar`),
+  encerrarPosicao: (id: number, motivo: string, precoFechamento: number | null) =>
+    enviar<null>(`/posicoes/${id}/encerrar`, {
+      motivo,
+      preco_fechamento: precoFechamento,
+    }),
 };

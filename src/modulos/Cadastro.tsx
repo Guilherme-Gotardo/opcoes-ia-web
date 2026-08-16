@@ -328,6 +328,104 @@ function FormPosicao({ ativos, aoMudar }: { ativos: Ativo[] | null; aoMudar: () 
   );
 }
 
+/*
+ * Encerrar é IRREVERSÍVEL pela interface: `close_posicao` grava a data de
+ * fechamento e não existe reabrir. Antes isso acontecia num clique, sem
+ * pergunta — perda de dado por engano de mira. O diálogo não é só
+ * confirmação: ele coleta o desfecho, que o backend passou a exigir porque
+ * sem ele não há resultado a apurar.
+ */
+const DESFECHOS_OPCAO = [
+  { valor: "expirada", rotulo: "Expirou sem exercício", ajuda: "virou pó; o prêmio fica inteiro" },
+  { valor: "recomprada", rotulo: "Recomprada", ajuda: "exige o preço pago para sair" },
+  { valor: "exercida", rotulo: "Exercida", ajuda: "as ações foram entregues ao strike" },
+];
+
+function DialogoEncerrar({
+  posicao,
+  aoFechar,
+  aoConfirmar,
+  enviando,
+}: {
+  posicao: PosicaoAberta;
+  aoFechar: () => void;
+  aoConfirmar: (motivo: string, preco: number | null) => void;
+  enviando: boolean;
+}) {
+  const ehOpcao = posicao.tipo_ativo === "OPCAO";
+  const [motivo, setMotivo] = useState(ehOpcao ? "expirada" : "encerrada");
+  const [preco, setPreco] = useState("");
+  const exigePreco = motivo === "recomprada";
+
+  return (
+    <div className="modal" role="dialog" aria-modal="true" aria-labelledby="enc-titulo">
+      <div className="modal__caixa">
+        <h3 id="enc-titulo" className="form__titulo">
+          Encerrar {posicao.ticker}?
+        </h3>
+        <p className="form__nota">
+          A linha não é apagada — o histórico fica. Mas <strong>não há como
+          reabrir</strong> pela interface.
+        </p>
+
+        {ehOpcao && (
+          <div className="form__campo">
+            <span>Como terminou</span>
+            {DESFECHOS_OPCAO.map((d) => (
+              <label key={d.valor} className="modal__opcao">
+                <input
+                  type="radio"
+                  name="motivo"
+                  value={d.valor}
+                  checked={motivo === d.valor}
+                  onChange={(e) => setMotivo(e.target.value)}
+                />
+                <span>
+                  {d.rotulo}
+                  <span className="form__ajuda"> — {d.ajuda}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+
+        {exigePreco && (
+          <label className="form__campo">
+            <span>Preço pago para recomprar</span>
+            <input
+              className="campo"
+              type="number"
+              min="0"
+              step="0.01"
+              value={preco}
+              onChange={(e) => setPreco(e.target.value)}
+              placeholder="0.40"
+              required
+            />
+            <span className="form__ajuda">
+              Sem ele o resultado da operação sairia superestimado.
+            </span>
+          </label>
+        )}
+
+        <div className="modal__acoes">
+          <button type="button" className="botao" onClick={aoFechar} disabled={enviando}>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="botao botao--primario"
+            disabled={enviando || (exigePreco && preco === "")}
+            onClick={() => aoConfirmar(motivo, exigePreco ? Number(preco) : null)}
+          >
+            {enviando ? "Encerrando…" : "Encerrar posição"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ListaPosicoes({
   posicoes,
   aoMudar,
@@ -336,15 +434,17 @@ function ListaPosicoes({
   aoMudar: () => void;
 }) {
   const [encerrando, setEncerrando] = useState<number | null>(null);
+  const [confirmando, setConfirmando] = useState<PosicaoAberta | null>(null);
   const [aviso, setAviso] = useState<Aviso>(null);
 
   const encerrar = useCallback(
-    async (p: PosicaoAberta) => {
+    async (p: PosicaoAberta, motivo: string, preco: number | null) => {
       setEncerrando(p.id);
       setAviso(null);
       try {
-        await api.encerrarPosicao(p.id);
-        setAviso({ tom: "ok", texto: `Posição ${p.ticker} encerrada.` });
+        await api.encerrarPosicao(p.id, motivo, preco);
+        setAviso({ tom: "ok", texto: `Posição ${p.ticker} encerrada (${motivo}).` });
+        setConfirmando(null);
         aoMudar();
       } catch (err) {
         setAviso({ tom: "erro", texto: err instanceof Error ? err.message : String(err) });
@@ -384,15 +484,23 @@ function ListaPosicoes({
             <button
               type="button"
               className="botao botao--discreto"
-              onClick={() => encerrar(p)}
+              onClick={() => setConfirmando(p)}
               disabled={encerrando === p.id}
             >
               <IconeX />
-              {encerrando === p.id ? "Encerrando…" : "Encerrar"}
+              Encerrar
             </button>
           </li>
         ))}
       </ul>
+      {confirmando && (
+        <DialogoEncerrar
+          posicao={confirmando}
+          enviando={encerrando === confirmando.id}
+          aoFechar={() => setConfirmando(null)}
+          aoConfirmar={(motivo, preco) => encerrar(confirmando, motivo, preco)}
+        />
+      )}
       <Mensagem aviso={aviso} />
       <p className="cartao__rodape">
         <span>

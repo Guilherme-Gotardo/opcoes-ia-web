@@ -16,7 +16,7 @@
  * é estimado pelas linhas gravadas hoje e SUBESTIMA quando um request falha
  * antes de gravar. A API marca `e_aproximacao`, e a tela mostra a marca.
  */
-import type { Coleta, Operacao as OperacaoDado } from "../api/client";
+import type { CanalColeta, SaudeColeta as SaudeColetaDado } from "../api/client";
 import { Ausente } from "../componentes/Ausente";
 import { Cartao } from "../componentes/Cartao";
 import { Estado } from "../componentes/Estado";
@@ -24,7 +24,7 @@ import { Selo } from "../componentes/Selo";
 import { IconeAlerta, IconeInfo, IconeRaio } from "../componentes/Icones";
 import { dataHora, horasDesde, idade, numero } from "../lib/formato";
 
-function LinhaColeta({ c }: { c: Coleta }) {
+function LinhaColeta({ c }: { c: CanalColeta }) {
   const horas = horasDesde(c.ultima_entrega_em);
 
   return (
@@ -59,12 +59,12 @@ function LinhaColeta({ c }: { c: Coleta }) {
 }
 
 type Props = {
-  operacao: OperacaoDado | null;
+  saude: SaudeColetaDado | null;
   erro: string | null;
 };
 
-export function Operacao({ operacao, erro }: Props) {
-  const orcamento = operacao?.orcamento;
+export function SaudeColeta({ saude, erro }: Props) {
+  const orcamento = saude?.orcamento;
   const usoPct =
     orcamento && orcamento.limite_diario > 0
       ? Math.min(100, (orcamento.gastos_hoje / orcamento.limite_diario) * 100)
@@ -73,23 +73,23 @@ export function Operacao({ operacao, erro }: Props) {
 
   return (
     <Cartao
-      id="operacao"
+      id="saude-coleta"
       icone={<IconeRaio />}
-      titulo="Operação e coleta"
+      titulo="Saúde da coleta"
       nota="Quando cada fonte entregou dado pela última vez e quanto do orçamento diário já foi gasto."
       acoes={
-        operacao?.ultima_avaliacao_em && (
-          <Selo tom="neutro" titulo={dataHora(operacao.ultima_avaliacao_em)}>
-            avaliação {idade(operacao.ultima_avaliacao_em)}
+        saude?.ultima_avaliacao_em && (
+          <Selo tom="neutro" titulo={dataHora(saude.ultima_avaliacao_em)}>
+            avaliação {idade(saude.ultima_avaliacao_em)}
           </Selo>
         )
       }
     >
       {erro ? (
-        <Estado tom="erro" icone={<IconeAlerta />} titulo="Não foi possível ler a operação">
+        <Estado tom="erro" icone={<IconeAlerta />} titulo="Não foi possível ler a saúde da coleta">
           {erro}
         </Estado>
-      ) : operacao == null ? (
+      ) : saude == null ? (
         <Estado titulo="Carregando…" />
       ) : (
         <>
@@ -131,19 +131,19 @@ export function Operacao({ operacao, erro }: Props) {
             </div>
           )}
 
-          {operacao.coletas.length === 0 ? (
+          {saude.coletas.length === 0 ? (
             <Estado titulo="Nenhuma coleta registrada">
               Nenhuma fonte gravou dado ainda. Rode um ETL e o rastro aparece aqui.
             </Estado>
           ) : (
             <ul className="coletas">
-              {operacao.coletas.map((c) => (
+              {saude.coletas.map((c) => (
                 <LinhaColeta key={`${c.canal}-${c.fonte}`} c={c} />
               ))}
             </ul>
           )}
 
-          {operacao.rastreia_falhas === false && (
+          {saude.rastreia_falhas === false && (
             <p className="cartao__rodape">
               <IconeInfo className="rodape__icone rodape__icone--neutro" />
               <span>

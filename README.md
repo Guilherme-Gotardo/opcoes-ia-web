@@ -69,8 +69,21 @@ npm run build              # um campo renomeado quebra AQUI, não em runtime
 
 ## Estado
 
-Painel completo: uma página com dez módulos. A leitura consome oito
-endpoints; o cadastro escreve por três.
+Painel em quatro telas com roteamento. A leitura consome nove endpoints; o
+cadastro escreve por três.
+
+| Tela | Módulos |
+|---|---|
+| `/` Carteira | Patrimônio, Investimentos, Exposição |
+| `/operacoes` Operações | Operações, Cadastro da carteira |
+| `/estrategia` Estratégia | Recomendações, Acompanhamento, Resultados |
+| `/mercado` Mercado | Gráfico, Tickers, Saúde da coleta |
+
+O agrupamento segue a pergunta, não a fonte: cada tela junta o que se olha
+ao mesmo tempo, mesmo vindo de endpoints diferentes. `usePainel` fica na
+casca e os dados chegam às telas pelo contexto do `Outlet` — buscar por tela
+recarregaria a carteira a cada navegação, e o mesmo recurso alimenta
+módulos de telas diferentes.
 
 | Módulo | Fonte | O que mostra |
 |---|---|---|
@@ -78,12 +91,13 @@ endpoints; o cadastro escreve por três.
 | Recomendações | `/sugestoes` | Sugestões em aberto com o snapshot de critérios |
 | Investimentos | `/carteira` | Posições, com preço médio ao lado do preço de mercado |
 | Cadastro | `/ativos`, `/posicoes` | Cadastro de ativo e registro/encerramento de posição |
+| Operações | `/operacoes` | Vendas cobertas com distância do strike, cenários e resultado líquido estimado |
 | Gráfico | `/candles` | Velas OHLC com preço médio e cotação marcados |
 | Exposição | `/carteira` | Fatia de cada ativo-objeto no patrimônio |
 | Tickers | `/cotacoes` + `/parametros` | Cotação, idade da coleta e a janela de frescor vigente |
 | Acompanhamento | `/desfecho` | Por que (não) saiu sugestão, critério a critério |
 | Resultados | `/resultados` | Calendário de divulgação, com tier de confiança e o que está registrado mas não consolidado |
-| Operação | `/operacao` | Última entrega de cada fonte e orçamento diário de requests |
+| Saúde da coleta | `/saude-coleta` | Última entrega de cada fonte e orçamento diário de requests |
 
 Cada módulo carrega o próprio erro — `/desfecho` fora do ar não apaga a
 carteira da tela. Só quando TODOS falham a interface conclui que a API
@@ -184,6 +198,37 @@ tornava ilegível justamente o dado principal.
 Posição em opção não vira linha de strike: `posicoes` guarda o código da
 opção, não o strike, e derivá-lo exigiria interpretar código B3 — que o
 projeto não faz em lugar nenhum.
+
+### Operação aberta não tem lucro realizado
+
+Enquanto a venda coberta está aberta, o prêmio já entrou mas o resultado
+ainda não existe: pode virar pó (prêmio inteiro) ou ser exercida (prêmio
+mais o resultado da venda ao strike). A tela mostra os **cenários**, não um
+"lucro atual" — que seria número inventado.
+
+Não há marcação a mercado da opção: o ETL de opções está bloqueado no plano
+do provedor e `opcoes` fica vazia. O que se compara é a cotação da **ação**
+com o strike, que para venda coberta responde o essencial — o gatilho do
+exercício é o preço da ação, não o da opção. A API declara o limite em
+`tem_cotacao_de_opcao` e a tela repete.
+
+Dentro do dinheiro usa tom de estado, **nunca vermelho**: numa call coberta
+significa que a ação subiu e o exercício ficou provável — você
+provavelmente sai no lucro. Vermelho contaria a história errada.
+
+### Resultado líquido é estimativa, não apuração
+
+O cálculo desconta custos e imposto por **perna fiscal** (prêmio da opção e
+venda da ação ao strike têm tratamentos diferentes, e a isenção mensal vale
+para ação e não para opção). Mas a apuração de verdade é mensal, consolida
+operações e carrega prejuízo — nada disso acontece aqui. Alíquotas e custos
+ficam em `src/fiscal/tributos.yaml` no repositório principal.
+
+### Encerrar pede confirmação porque é irreversível
+
+Não existe reabrir posição. O diálogo coleta o desfecho (expirou,
+recomprada, exercida), que o backend passa a exigir porque sem ele não há
+resultado a apurar — e de quebra impede perda de dado por engano de mira.
 
 ## O que o contrato ainda não tem
 

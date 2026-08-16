@@ -74,8 +74,12 @@ export interface paths {
         put?: never;
         /**
          * Encerrar Posicao
-         * @description Marca `fechada_em`. A linha NUNCA é removida: o histórico é o que
-         *     permite explicar uma decisão passada meses depois.
+         * @description Marca `fechada_em` com o desfecho. A linha NUNCA é removida: o
+         *     histórico é o que permite explicar uma decisão passada meses depois.
+         *
+         *     Exige corpo com o motivo — o que também serve de confirmação: encerrar
+         *     é irreversível pela interface (não existe reabrir), e um POST vazio
+         *     tornava perda de dado a um clique de distância.
          */
         post: operations["encerrar_posicao_posicoes__posicao_id__encerrar_post"];
         delete?: never;
@@ -186,7 +190,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/operacao": {
+    "/saude-coleta": {
         parameters: {
             query?: never;
             header?: never;
@@ -194,7 +198,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Operacao
+         * Saude Coleta
          * @description Quando cada fonte entregou dado pela última vez, e quanto do
          *     orçamento diário de requests já foi gasto.
          *
@@ -204,7 +208,7 @@ export interface paths {
          *     "não gravou nada", que pode ser fonte quebrada ou simplesmente dia sem
          *     novidade, e o banco não sabe qual dos dois.
          */
-        get: operations["operacao_operacao_get"];
+        get: operations["saude_coleta_saude_coleta_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -229,6 +233,32 @@ export interface paths {
          *     série de 5.000 precisa devolver as 200 últimas, não as 200 primeiras.
          */
         get: operations["candles_candles_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operacoes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Operacoes
+         * @description Operações de opção — abertas e encerradas — com resultado estimado.
+         *
+         *     NÃO há marcação a mercado da opção: o ETL de opções está bloqueado no
+         *     plano Free do provedor e `opcoes` fica vazia. O que se usa é a cotação
+         *     do ATIVO-OBJETO, que responde a pergunta central da venda coberta ("a
+         *     ação passou do strike?") sem precisar do preço da opção. A resposta
+         *     declara esse limite em `tem_cotacao_de_opcao`.
+         */
+        get: operations["operacoes_operacoes_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -302,6 +332,25 @@ export interface components {
              */
             criado_em: string;
         };
+        /** CanalColetaResposta */
+        CanalColetaResposta: {
+            /**
+             * Canal
+             * @description O que é coletado: cotações, opções, notícias, resultados
+             */
+            canal: string;
+            /** Fonte */
+            fonte: string;
+            /**
+             * Ultima Entrega Em
+             * @description Última vez que esta fonte GRAVOU dado. Não é 'última tentativa': uma falha não deixa rastro no banco
+             */
+            ultima_entrega_em: string | null;
+            /** Registros Hoje */
+            registros_hoje: number;
+            /** Ja Entregou */
+            ja_entregou: boolean;
+        };
         /**
          * CandlesResposta
          * @description Série de velas de um ticker, em ordem cronológica.
@@ -343,24 +392,20 @@ export interface components {
                 [key: string]: number;
             };
         };
-        /** ColetaResposta */
-        ColetaResposta: {
-            /**
-             * Canal
-             * @description O que é coletado: cotações, opções, notícias, resultados
-             */
-            canal: string;
-            /** Fonte */
-            fonte: string;
-            /**
-             * Ultima Entrega Em
-             * @description Última vez que esta fonte GRAVOU dado. Não é 'última tentativa': uma falha não deixa rastro no banco
-             */
-            ultima_entrega_em: string | null;
-            /** Registros Hoje */
-            registros_hoje: number;
-            /** Ja Entregou */
-            ja_entregou: boolean;
+        /**
+         * CenarioResposta
+         * @description Desfecho hipotético de uma operação AINDA ABERTA.
+         *
+         *     Não é previsão de preço: é aritmética sobre o que aconteceria se a
+         *     opção terminasse de cada jeito, com os números que já existem.
+         */
+        CenarioResposta: {
+            /** Nome */
+            nome: string;
+            /** Descricao */
+            descricao: string;
+            /** Resultado Liquido */
+            resultado_liquido: number;
         };
         /** CotacaoResposta */
         CotacaoResposta: {
@@ -384,6 +429,27 @@ export interface components {
             ha_registro: boolean;
             /** Motivos */
             motivos: components["schemas"]["MotivoDesfechoResposta"][];
+        };
+        /**
+         * EncerramentoEntrada
+         * @description Como a posição fechou — obrigatório porque o resultado depende disso.
+         *
+         *     `fechada_em` sozinho diz QUANDO fechou e nunca COMO: expirada rende o
+         *     prêmio inteiro, recomprada rende o prêmio menos a recompra, exercida
+         *     atravessa duas categorias fiscais.
+         */
+        EncerramentoEntrada: {
+            /**
+             * Motivo
+             * @description expirada | recomprada | exercida | encerrada
+             * @default encerrada
+             */
+            motivo: string;
+            /**
+             * Preco Fechamento
+             * @description Obrigatório em `recomprada`: é o que se pagou para sair. Sem ele o resultado sairia superestimado
+             */
+            preco_fechamento?: number | null;
         };
         /** EventoResultadoResposta */
         EventoResultadoResposta: {
@@ -482,28 +548,77 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /**
-         * OperacaoResposta
-         * @description Saúde da coleta, derivada do dado que já existe.
-         *
-         *     Este recurso NÃO é um log de execução: o projeto não grava tentativas,
-         *     erros nem duração. Ele responde "quando cada fonte entregou dado pela
-         *     última vez", que é o que o banco realmente sabe. `rastreia_falhas`
-         *     declara esse limite no próprio contrato para que a interface não
-         *     apresente silêncio como se fosse saúde.
-         */
+        /** OperacaoResposta */
         OperacaoResposta: {
-            /** Coletas */
-            coletas: components["schemas"]["ColetaResposta"][];
-            orcamento: components["schemas"]["OrcamentoResposta"];
-            /** Ultima Avaliacao Em */
-            ultima_avaliacao_em: string | null;
+            /** Posicao Id */
+            posicao_id: number;
+            /** Codigo */
+            codigo: string;
+            /** Ticker Objeto */
+            ticker_objeto: string | null;
             /**
-             * Rastreia Falhas
-             * @description Sempre False: nada registra execução com erro. Fonte sem entrega recente pode estar quebrada OU apenas sem novidade — o banco não distingue os dois casos
-             * @default false
+             * Quantidade
+             * @description Negativo = lançada. Em opções, não contratos
              */
-            rastreia_falhas: boolean;
+            quantidade: number;
+            /** Premio Unitario */
+            premio_unitario: number;
+            /** Strike */
+            strike: number | null;
+            /** Vencimento */
+            vencimento: string | null;
+            /** Dias Para Vencimento */
+            dias_para_vencimento: number | null;
+            /**
+             * Aberta Em
+             * Format: date-time
+             */
+            aberta_em: string;
+            /** Fechada Em */
+            fechada_em: string | null;
+            /** Motivo Fechamento */
+            motivo_fechamento: string | null;
+            /** Preco Fechamento */
+            preco_fechamento: number | null;
+            /** Preco Objeto */
+            preco_objeto: number | null;
+            /**
+             * Distancia Do Strike Pct
+             * @description Quanto o objeto está acima (+) ou abaixo (−) do strike. É a pergunta central da venda coberta
+             */
+            distancia_do_strike_pct: number | null;
+            /** Dentro Do Dinheiro */
+            dentro_do_dinheiro: boolean | null;
+            /** Resultado Bruto */
+            resultado_bruto: number;
+            /** Custos */
+            custos: number;
+            /** Imposto */
+            imposto: number;
+            /** Resultado Liquido */
+            resultado_liquido: number;
+            /** Pernas */
+            pernas: components["schemas"]["PernaResposta"][];
+            /** Cenarios */
+            cenarios: components["schemas"]["CenarioResposta"][];
+            /**
+             * Estimativa
+             * @description Sempre True: é estimativa por operação, não apuração fiscal — a real é mensal e consolida operações
+             * @default true
+             */
+            estimativa: boolean;
+            /** Ressalvas */
+            ressalvas: string[];
+        };
+        /** OperacoesResposta */
+        OperacoesResposta: {
+            /** Operacoes */
+            operacoes: components["schemas"]["OperacaoResposta"][];
+            /**
+             * Tem Cotacao De Opcao
+             * @description False enquanto o ETL de opções estiver bloqueado: sem ele não há marcação a mercado da posição em opção
+             */
+            tem_cotacao_de_opcao: boolean;
         };
         /** OrcamentoResposta */
         OrcamentoResposta: {
@@ -574,6 +689,21 @@ export interface components {
              */
             comando_para_consolidar: string;
         };
+        /** PernaResposta */
+        PernaResposta: {
+            /** Nome */
+            nome: string;
+            /** Resultado Bruto */
+            resultado_bruto: number;
+            /** Custos */
+            custos: number;
+            /** Aliquota Pct */
+            aliquota_pct: number;
+            /** Imposto */
+            imposto: number;
+            /** Resultado Liquido */
+            resultado_liquido: number;
+        };
         /** PosicaoAbertaResposta */
         PosicaoAbertaResposta: {
             /** Id */
@@ -619,7 +749,7 @@ export interface components {
             tipo_ativo: string;
             /**
              * Quantidade
-             * @description Negativo = posição LANÇADA (vendida). É assim que uma venda coberta é registrada
+             * @description Negativo = posição LANÇADA (vendida). É assim que uma venda coberta é registrada. Está em OPÇÕES (cada uma sobre 1 ação), não em contratos
              */
             quantidade: number;
             /**
@@ -627,6 +757,15 @@ export interface components {
              * @description Base de custo — nunca valor de mercado
              */
             preco_medio: number;
+            /**
+             * Ticker Objeto
+             * @description A ação que a opção cobre. Informado, não inferido: derivar do código exigiria interpretar código B3
+             */
+            ticker_objeto?: string | null;
+            /** Strike */
+            strike?: number | null;
+            /** Vencimento */
+            vencimento?: string | null;
         };
         /** PosicaoResposta */
         PosicaoResposta: {
@@ -661,6 +800,29 @@ export interface components {
              * @description O que a avaliação faz sem data confiável: `bloquear` (padrão, conservador) ou `sinalizar`. Reprovação em critério de mercado sempre vence a política
              */
             politica_resultado_desconhecido: string;
+        };
+        /**
+         * SaudeColetaResposta
+         * @description Saúde da coleta, derivada do dado que já existe.
+         *
+         *     Este recurso NÃO é um log de execução: o projeto não grava tentativas,
+         *     erros nem duração. Ele responde "quando cada fonte entregou dado pela
+         *     última vez", que é o que o banco realmente sabe. `rastreia_falhas`
+         *     declara esse limite no próprio contrato para que a interface não
+         *     apresente silêncio como se fosse saúde.
+         */
+        SaudeColetaResposta: {
+            /** Coletas */
+            coletas: components["schemas"]["CanalColetaResposta"][];
+            orcamento: components["schemas"]["OrcamentoResposta"];
+            /** Ultima Avaliacao Em */
+            ultima_avaliacao_em: string | null;
+            /**
+             * Rastreia Falhas
+             * @description Sempre False: nada registra execução com erro. Fonte sem entrega recente pode estar quebrada OU apenas sem novidade — o banco não distingue os dois casos
+             * @default false
+             */
+            rastreia_falhas: boolean;
         };
         /** SugestaoResposta */
         SugestaoResposta: {
@@ -847,7 +1009,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EncerramentoEntrada"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             204: {
@@ -978,7 +1144,7 @@ export interface operations {
             };
         };
     };
-    operacao_operacao_get: {
+    saude_coleta_saude_coleta_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -993,7 +1159,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OperacaoResposta"];
+                    "application/json": components["schemas"]["SaudeColetaResposta"];
                 };
             };
         };
@@ -1027,6 +1193,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    operacoes_operacoes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperacoesResposta"];
                 };
             };
         };

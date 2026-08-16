@@ -1,81 +1,51 @@
 /**
- * Painel do opcoes-ia.
+ * Casca do painel: barra superior, menu de rotas e a tela ativa.
  *
- * Uma página só, dez módulos, na ordem em que a pergunta costuma ser feita:
- * quanto eu tenho (patrimônio), o que o sistema sugere (recomendações), em
- * quê exatamente estou (investimentos), como registro o que tenho
- * (cadastro), como o preço se moveu (gráfico), onde isso está concentrado
- * (exposição), o que está sendo observado (tickers), por que a avaliação deu
- * no que deu (acompanhamento), o que pode travar a próxima (resultados) e se
- * a coleta que alimenta tudo isso está de pé (operação).
+ * POR QUE ROTAS, DEPOIS DE UMA PÁGINA SÓ
+ * --------------------------------------
+ * A página única funcionou até onze módulos. Passou disso e virou rolagem:
+ * chegar ao acompanhamento exigia atravessar tudo, e "onde eu estou" tinha
+ * que ser respondido por um scrollspy. Rota resolve os dois — a tela ativa é
+ * o endereço, o botão voltar funciona, e cada tela tem link próprio.
  *
- * Regras herdadas do projeto principal que valem em toda a tela:
+ * O AGRUPAMENTO SEGUE A PERGUNTA, NÃO A FONTE DE DADO
+ * ---------------------------------------------------
+ * Cada tela junta o que se olha ao mesmo tempo, mesmo vindo de endpoints
+ * diferentes: quanto eu tenho (carteira), o que estou operando (operações),
+ * o que o sistema sugere e por quê (estratégia), e como o preço se move e se
+ * a coleta está de pé (mercado).
+ *
+ * UM FETCH SÓ PARA TODAS AS TELAS
+ * -------------------------------
+ * `usePainel` fica AQUI, e as telas recebem os dados pelo contexto do
+ * `Outlet`. Buscar por tela recarregaria a carteira a cada navegação — e
+ * como um mesmo recurso alimenta módulos de telas diferentes (`/carteira`
+ * aparece em três), seriam requisições repetidas para mostrar o mesmo
+ * número.
+ *
+ * Regras herdadas do projeto principal que valem em toda a interface:
  * preço médio é custo e nunca ocupa o lugar do preço de mercado; patrimônio
- * parcial é declarado, não disfarçado; e nenhuma sugestão é ordem — tudo
- * aqui é pendente de revisão humana. O cadastro escreve, mas escreve
- * ESCRITURAÇÃO: espelha o que já existe na corretora, sem mandar ordem.
- *
- * Nenhum critério de estratégia mora nesta interface. Ela exibe o resultado
- * e a justificativa numérica que a API entrega; não avalia, não pondera e
- * não decide.
+ * parcial é declarado, não disfarçado; nenhuma sugestão é ordem; e o
+ * cadastro escreve ESCRITURAÇÃO — espelha o que já existe na corretora, sem
+ * mandar ordem para lugar nenhum.
  */
+import { NavLink, Outlet } from "react-router-dom";
 import { usePainel } from "./api/usePainel";
-import { Cartao } from "./componentes/Cartao";
-import { Esqueleto, Estado } from "./componentes/Estado";
 import {
-  IconeAlerta,
   IconeAtualizar,
-  IconeBussola,
-  IconeCalendario,
-  IconeCarteira,
-  IconeEtiqueta,
-  IconeGrafico,
-  IconeIdeia,
-  IconeLista,
   IconeLua,
   IconeOk,
-  IconeRaio,
   IconeSol,
   IconeX,
 } from "./componentes/Icones";
-import { Acompanhamento } from "./modulos/Acompanhamento";
-import { Cadastro } from "./modulos/Cadastro";
-import { Cotacoes } from "./modulos/Cotacoes";
-import { Grafico } from "./modulos/Grafico";
-import { Exposicao } from "./modulos/Exposicao";
-import { Investimentos } from "./modulos/Investimentos";
-import { Operacao } from "./modulos/Operacao";
-import { Patrimonio } from "./modulos/Patrimonio";
-import { Recomendacoes } from "./modulos/Recomendacoes";
-import { Resultados } from "./modulos/Resultados";
-import { useSecaoAtiva } from "./lib/useSecaoAtiva";
+import { TELAS } from "./lib/telas";
 import { useTema } from "./lib/useTema";
 import { dataHora, idade } from "./lib/formato";
 import "./App.css";
 
-/** A ordem do menu é a ordem da página — e a ordem em que a pergunta é feita. */
-const SECOES = [
-  { id: "patrimonio", rotulo: "Patrimônio", Icone: IconeCarteira },
-  { id: "recomendacoes", rotulo: "Recomendações", Icone: IconeIdeia },
-  { id: "investimentos", rotulo: "Investimentos", Icone: IconeLista },
-  { id: "cadastro", rotulo: "Cadastro", Icone: IconeCarteira },
-  { id: "grafico", rotulo: "Gráfico", Icone: IconeGrafico },
-  { id: "exposicao", rotulo: "Exposição", Icone: IconeGrafico },
-  { id: "tickers", rotulo: "Tickers", Icone: IconeEtiqueta },
-  { id: "acompanhamento", rotulo: "Acompanhamento", Icone: IconeBussola },
-  { id: "resultados", rotulo: "Resultados", Icone: IconeCalendario },
-  { id: "operacao", rotulo: "Operação", Icone: IconeRaio },
-] as const;
-
-const IDS = SECOES.map((s) => s.id);
-
 export default function App() {
   const painel = usePainel();
   const { escuro, alternar } = useTema();
-  const ativa = useSecaoAtiva(IDS);
-
-  const carteira = painel.carteira.dado;
-  const primeiraCarga = painel.carregando && painel.buscadoEm == null;
 
   return (
     <div className="app">
@@ -132,18 +102,20 @@ export default function App() {
       </header>
 
       <div className="tela">
-        <nav className="menu" aria-label="Módulos do painel">
+        <nav className="menu" aria-label="Telas do painel">
           <ul>
-            {SECOES.map(({ id, rotulo, Icone }) => (
-              <li key={id}>
-                <a
-                  href={`#${id}`}
-                  className={`menu__item${ativa === id ? " menu__item--ativo" : ""}`}
-                  aria-current={ativa === id ? "true" : undefined}
+            {TELAS.map(({ caminho, rotulo, Icone }) => (
+              <li key={caminho}>
+                <NavLink
+                  to={caminho}
+                  end={caminho === "/"}
+                  className={({ isActive }) =>
+                    `menu__item${isActive ? " menu__item--ativo" : ""}`
+                  }
                 >
                   <Icone />
                   {rotulo}
-                </a>
+                </NavLink>
               </li>
             ))}
           </ul>
@@ -153,91 +125,7 @@ export default function App() {
         </nav>
 
         <main className="painel">
-          {painel.apiFora ? (
-            <Cartao
-              icone={<IconeAlerta />}
-              titulo="Sem contato com a API"
-              nota="Todos os endpoints falharam — o problema é a conexão, não o dado."
-            >
-              <Estado tom="erro" icone={<IconeX />} titulo="A API do opcoes-ia não respondeu">
-                <p>
-                  Suba a API no repositório principal e atualize esta página:
-                </p>
-                <pre className="bloco">python -m src.api</pre>
-                <p className="estado__detalhe">{painel.carteira.erro}</p>
-              </Estado>
-            </Cartao>
-          ) : (
-            <>
-              {primeiraCarga ? (
-                <Cartao titulo="Carregando carteira">
-                  <Esqueleto linhas={4} />
-                </Cartao>
-              ) : painel.carteira.erro ? (
-                <Cartao icone={<IconeAlerta />} titulo="Carteira indisponível">
-                  <Estado
-                    tom="erro"
-                    icone={<IconeAlerta />}
-                    titulo="Não foi possível ler a carteira"
-                  >
-                    {painel.carteira.erro}
-                  </Estado>
-                </Cartao>
-              ) : (
-                carteira && (
-                  <Patrimonio
-                    carteira={carteira}
-                    executadoEm={painel.desfecho.dado?.executado_em ?? null}
-                  />
-                )
-              )}
-
-              <Recomendacoes
-                sugestoes={primeiraCarga ? null : painel.sugestoes.dado}
-                erro={painel.sugestoes.erro}
-              />
-
-              {carteira && !painel.carteira.erro && (
-                <Investimentos carteira={carteira} />
-              )}
-
-              <Cadastro
-                ativos={primeiraCarga ? null : painel.ativos.dado}
-                posicoes={primeiraCarga ? null : painel.posicoesAbertas.dado}
-                erro={painel.ativos.erro ?? painel.posicoesAbertas.erro}
-                aoMudar={painel.atualizar}
-              />
-
-              <Grafico carteira={carteira} />
-
-              {/* Os dois módulos compactos dividem uma linha; o resto ocupa a largura toda. */}
-              <div className="grade">
-                {carteira && !painel.carteira.erro && <Exposicao carteira={carteira} />}
-                <Cotacoes
-                  cotacoes={primeiraCarga ? null : painel.cotacoes.dado}
-                  erro={painel.cotacoes.erro}
-                  janelaHoras={
-                    painel.parametros.dado?.cotacao_frescor_maximo_horas ?? null
-                  }
-                />
-              </div>
-
-              <Acompanhamento
-                desfecho={primeiraCarga ? null : painel.desfecho.dado}
-                erro={painel.desfecho.erro}
-              />
-
-              <Resultados
-                resultados={primeiraCarga ? null : painel.resultados.dado}
-                erro={painel.resultados.erro}
-              />
-
-              <Operacao
-                operacao={primeiraCarga ? null : painel.operacao.dado}
-                erro={painel.operacao.erro}
-              />
-            </>
-          )}
+          <Outlet context={painel} />
 
           <footer className="rodape">
             <p>
@@ -249,7 +137,8 @@ export default function App() {
               Os critérios são determinísticos e vivem no repositório principal. Os
               valores vêm do banco populado pelo ETL: a interface exibe o resultado e a
               justificativa numérica, e <strong>não estima nada</strong> — não avalia,
-              não pondera e não decide.
+              não pondera e não decide. Resultado de operação é{" "}
+              <strong>estimativa para conferência</strong>, nunca apuração fiscal.
             </p>
           </footer>
         </main>

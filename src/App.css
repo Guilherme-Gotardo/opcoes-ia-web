@@ -2174,3 +2174,284 @@
   color: var(--tinta-3);
   font-size: 11px;
 }
+
+/* ------------------------------------------------------------- operações */
+
+.operacoes__grupo + .operacoes__grupo {
+  margin-block-start: 22px;
+}
+
+.operacoes__titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-block-end: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tinta-3);
+}
+
+.operacoes__contagem {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--superficie-3);
+  color: var(--tinta-2);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.operacoes__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.operacao {
+  padding: 15px;
+  border-radius: var(--raio);
+  border: 1px solid var(--borda);
+  background: var(--superficie-2);
+}
+
+.operacao--encerrada {
+  background: var(--superficie);
+}
+
+.operacao__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-block-end: 13px;
+}
+
+.operacao__identidade {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.operacao__codigo {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--tinta);
+}
+
+.operacao__objeto {
+  color: var(--tinta-3);
+  font-size: 12px;
+}
+
+.operacao__prazo {
+  color: var(--tinta-2);
+  font-size: 12.5px;
+}
+
+/* Vencimento próximo é fato operacional, não prejuízo — tom de estado. */
+.operacao__prazo--curto {
+  color: var(--estado-obsoleto);
+  font-weight: 600;
+}
+
+.operacao__liquido {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.operacao__numeros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin: 0 0 13px;
+}
+
+.operacao__numeros dt {
+  color: var(--tinta-3);
+  font-size: 11.5px;
+  margin-block-end: 3px;
+}
+
+.operacao__numeros dd {
+  margin: 0;
+  color: var(--tinta);
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.operacao__sub {
+  color: var(--tinta-3) !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  margin-block-start: 2px !important;
+}
+
+.operacao__estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border-radius: var(--raio-p);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.operacao__estado svg {
+  inline-size: 15px;
+  block-size: 15px;
+  flex: none;
+}
+
+/*
+ * Dentro do dinheiro usa tom de estado BLOQUEADO, nunca vermelho: numa call
+ * coberta significa que a ação subiu e o exercício ficou provável — você
+ * provavelmente sai no lucro. Vermelho contaria a história errada.
+ */
+.operacao__estado--itm {
+  background: var(--estado-bloqueado-suave);
+  color: var(--estado-bloqueado);
+}
+
+.operacao__estado--otm {
+  background: var(--estado-ok-suave);
+  color: var(--estado-ok);
+}
+
+.cenarios {
+  margin-block-start: 13px;
+  padding-block-start: 12px;
+  border-block-start: 1px dashed var(--borda-forte);
+}
+
+.cenarios__titulo {
+  color: var(--tinta-3);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-block-end: 8px;
+}
+
+.cenarios ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cenarios li {
+  display: grid;
+  grid-template-columns: minmax(140px, auto) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.cenarios__nome {
+  color: var(--tinta);
+  font-weight: 550;
+}
+
+.cenarios__descricao {
+  color: var(--tinta-3);
+  font-size: 11.5px;
+}
+
+.cenarios__nota {
+  margin-block-start: 9px;
+  color: var(--tinta-3);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.tabela--compacta {
+  font-size: 12.5px;
+}
+
+.tabela--compacta th,
+.tabela--compacta td {
+  padding: 6px 10px;
+}
+
+.operacao__nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-block-start: 10px;
+  color: var(--tinta-3);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.operacao__nota--ressalva {
+  color: var(--tinta-2);
+}
+
+/* ------------------------------------------------------------------ modal */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.modal__caixa {
+  inline-size: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: var(--raio-g);
+  border: 1px solid var(--borda-forte);
+  background: var(--superficie);
+  box-shadow: var(--sombra-alta);
+}
+
+.modal__opcao {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 0;
+  font-size: 13px;
+  color: var(--tinta);
+  cursor: pointer;
+}
+
+.modal__opcao input {
+  margin-block-start: 3px;
+  accent-color: var(--acento);
+}
+
+.modal__acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-block-start: 4px;
+}
+
+.modal strong {
+  color: var(--tinta);
+}
+
+@media (max-width: 620px) {
+  .cenarios li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .cenarios__descricao {
+    grid-column: 1 / -1;
+  }
+}
