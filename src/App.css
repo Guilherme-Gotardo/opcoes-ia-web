@@ -2455,3 +2455,59 @@
     grid-column: 1 / -1;
   }
 }
+
+/* Agrupamento mensal das encerradas — a unidade da apuração fiscal. */
+.mes {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  margin-block-end: 10px;
+  background: var(--superficie-2);
+}
+
+.mes__cabeca {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.mes__cabeca::-webkit-details-marker {
+  display: none;
+}
+
+.mes__rotulo {
+  color: var(--tinta);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.mes__contagem {
+  color: var(--tinta-3);
+  font-size: 11.5px;
+}
+
+.mes__liquido {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.mes__lista {
+  padding: 0 14px 14px;
+}
+
+.operacoes__nota-mes {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-block-start: 10px;
+  color: var(--tinta-3);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.operacoes__nota-mes strong {
+  color: var(--tinta-2);
+}

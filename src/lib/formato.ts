@@ -92,6 +92,21 @@ export const data = (iso: string | null | undefined): string => {
   });
 };
 
+/**
+ * "Agosto de 2026" — rótulo de agrupamento mensal.
+ *
+ * A maiúscula é aplicada só na PRIMEIRA letra, aqui e não no CSS:
+ * `text-transform: capitalize` maiúscula cada palavra e produz "Agosto De
+ * 2026", que está errado em português.
+ */
+export const mesAno = (iso: string | null | undefined): string => {
+  if (!iso) return NADA;
+  const d = paraData(iso);
+  if (!d) return NADA;
+  const rotulo = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  return rotulo.charAt(0).toUpperCase() + rotulo.slice(1);
+};
+
 const relativo = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
 
 /** "há 3 h" — idade do dado. Cotação velha é informação, então é exibida. */

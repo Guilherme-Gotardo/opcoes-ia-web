@@ -39,7 +39,7 @@ import {
   IconeOk,
   IconeRelogio,
 } from "../componentes/Icones";
-import { brl, brlAssinado, data, numero, pct, pctAssinado } from "../lib/formato";
+import { brl, brlAssinado, data, mesAno, numero, pct, pctAssinado } from "../lib/formato";
 
 const MOTIVO: Record<string, { rotulo: string; tom: Tom }> = {
   expirada: { rotulo: "expirou sem exercício", tom: "ok" },
@@ -223,6 +223,48 @@ function Encerrada({ o }: { o: Operacao }) {
   );
 }
 
+/**
+ * Encerradas agrupadas por MÊS, não por dia.
+ *
+ * A razão é de domínio, não de layout: a apuração do imposto é mensal, e é
+ * nessa unidade que os resultados começam a somar em algo comparável ao que
+ * o fisco pede. Por dia fragmentaria — raramente há dois encerramentos no
+ * mesmo dia — e não corresponderia a nenhuma regra.
+ *
+ * A lista também não pode crescer para sempre na tela: uma carteira ativa
+ * fecha dezenas de operações por ano, e mostrar todas em sequência
+ * transformaria a informação útil (o que está ABERTO) em rolagem.
+ */
+type GrupoMensal = {
+  chave: string;
+  rotulo: string;
+  operacoes: Operacao[];
+  liquido: number;
+};
+
+function agruparPorMes(encerradas: Operacao[]): GrupoMensal[] {
+  const grupos = new Map<string, GrupoMensal>();
+
+  for (const o of encerradas) {
+    if (!o.fechada_em) continue;
+    const d = new Date(o.fechada_em);
+    // Chave ordenável (AAAA-MM); o rótulo é que vira legível.
+    const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const grupo = grupos.get(chave) ?? {
+      chave,
+      rotulo: mesAno(o.fechada_em),
+      operacoes: [],
+      liquido: 0,
+    };
+    grupo.operacoes.push(o);
+    grupo.liquido += o.resultado_liquido;
+    grupos.set(chave, grupo);
+  }
+
+  // Mês mais recente primeiro: é o que está em aberto na cabeça de quem lê.
+  return [...grupos.values()].sort((a, b) => b.chave.localeCompare(a.chave));
+}
+
 type Props = {
   operacoes: OperacoesDado | null;
   erro: string | null;
@@ -291,11 +333,45 @@ export function Operacoes({ operacoes, erro }: Props) {
                 Encerradas{" "}
                 <span className="operacoes__contagem">{numero(encerradas.length)}</span>
               </h3>
-              <div className="operacoes__lista">
-                {encerradas.map((o) => (
-                  <Encerrada key={o.posicao_id} o={o} />
-                ))}
-              </div>
+
+              {agruparPorMes(encerradas).map((mes, i) => (
+                <details
+                  key={mes.chave}
+                  className="mes"
+                  /* O mês corrente vem aberto; os anteriores ficam a um
+                     clique. Sem isso a tela volta a ser rolagem. */
+                  open={i === 0}
+                >
+                  <summary className="mes__cabeca">
+                    <span className="mes__rotulo">{mes.rotulo}</span>
+                    <span className="mes__contagem">
+                      {numero(mes.operacoes.length)}{" "}
+                      {mes.operacoes.length === 1 ? "operação" : "operações"}
+                    </span>
+                    <span
+                      className={`num mes__liquido valor--${
+                        mes.liquido >= 0 ? "ganho" : "perda"
+                      }`}
+                    >
+                      {brlAssinado(mes.liquido)}
+                    </span>
+                  </summary>
+                  <div className="operacoes__lista mes__lista">
+                    {mes.operacoes.map((o) => (
+                      <Encerrada key={o.posicao_id} o={o} />
+                    ))}
+                  </div>
+                </details>
+              ))}
+
+              <p className="operacoes__nota-mes">
+                <IconeInfo className="rodape__icone rodape__icone--neutro" />
+                <span>
+                  O total do mês soma as estimativas das operações fechadas nele.
+                  <strong> Não é a apuração</strong>: ela compensa prejuízo de meses
+                  anteriores, separa as categorias e desconta o IRRF retido.
+                </span>
+              </p>
             </section>
           )}
         </>
