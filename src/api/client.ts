@@ -31,6 +31,7 @@ export type Cenario = components["schemas"]["CenarioResposta"];
 export type Orcamento = components["schemas"]["OrcamentoResposta"];
 export type Parametros = components["schemas"]["ParametrosResposta"];
 export type Watchlist = components["schemas"]["WatchlistResposta"];
+export type Candidato = components["schemas"]["CandidatoResposta"];
 export type Caixa = components["schemas"]["CaixaResposta"];
 export type Lancamento = components["schemas"]["LancamentoResposta"];
 export type Candles = components["schemas"]["CandlesResposta"];
@@ -95,6 +96,12 @@ export const api = {
   parametros: () => buscar<Parametros>("/parametros"),
   ativos: () => buscar<Ativo[]>("/ativos"),
   watchlist: () => buscar<Watchlist>("/watchlist"),
+  catalogo: (termo: string) =>
+    buscar<Candidato[]>(`/catalogo?busca=${encodeURIComponent(termo)}`),
+  cnpjDoCatalogo: (ticker: string) =>
+    buscar<{ ticker: string; cnpj_raiz: string | null }>(
+      `/catalogo/${encodeURIComponent(ticker)}/cnpj`,
+    ),
   caixa: () => buscar<Caixa>("/caixa"),
   posicoes: () => buscar<PosicaoAberta[]>("/posicoes"),
   candles: (ticker: string, intervalo: string, limite = 200) =>

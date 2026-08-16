@@ -160,6 +160,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/catalogo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Buscar No Catalogo
+         * @description Procura ativos por código ou nome no catálogo do provedor.
+         *
+         *     Existe para o cadastro não depender de digitação: nome e CNPJ vêm da
+         *     fonte em vez da memória do usuário. Um dígito trocado no CNPJ raiz
+         *     quebra o vínculo com o dump da CVM, e o calendário de resultados fica
+         *     silenciosamente vazio para aquele ativo.
+         *
+         *     Cada chamada consome 1 request do orçamento diário — a interface deve
+         *     buscar no envio, nunca a cada tecla.
+         */
+        get: operations["buscar_no_catalogo_catalogo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/catalogo/{ticker}/cnpj": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cnpj Do Catalogo
+         * @description Raiz do CNPJ do ativo, para preencher o vínculo com a CVM.
+         */
+        get: operations["cnpj_do_catalogo_catalogo__ticker__cnpj_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/carteira": {
         parameters: {
             query?: never;
@@ -451,6 +499,31 @@ export interface components {
             registros_hoje: number;
             /** Ja Entregou */
             ja_entregou: boolean;
+        };
+        /**
+         * CandidatoResposta
+         * @description Um ativo do catálogo do provedor, já avaliado quanto ao cadastro.
+         *
+         *     `impedimentos` não vazio significa que o candidato aparece mas NÃO pode
+         *     ser cadastrado como está — com o motivo, para não sumir sem explicação
+         *     e o usuário procurar de novo pelo mesmo ticker.
+         */
+        CandidatoResposta: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * Nome
+             * @description `null` quando a fonte devolve o próprio ticker como nome (BDR e fundos) — assumir seria derivar nome do ticker, que a regra 1 do projeto proíbe
+             */
+            nome: string | null;
+            /** Tipo */
+            tipo: string | null;
+            /** Setor */
+            setor: string | null;
+            /** Impedimentos */
+            impedimentos: string[];
+            /** Cadastravel */
+            cadastravel: boolean;
         };
         /**
          * CandlesResposta
@@ -1307,6 +1380,70 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    buscar_no_catalogo_catalogo_get: {
+        parameters: {
+            query: {
+                busca: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidatoResposta"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cnpj_do_catalogo_catalogo__ticker__cnpj_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

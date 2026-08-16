@@ -23,6 +23,7 @@ import { useCallback, useState } from "react";
 import {
   api,
   type Ativo,
+  type Candidato,
   type PosicaoAberta,
 } from "../api/client";
 import { Cartao } from "../componentes/Cartao";
@@ -62,13 +63,71 @@ function Mensagem({ aviso }: { aviso: Aviso }) {
   );
 }
 
+/**
+ * Cadastro por BUSCA, não por digitação.
+ *
+ * `add_ativo` exige nome e nunca o deriva do ticker (regra 1: o sistema
+ * não inventa dado). A consequência era digitar nome e CNPJ à mão — e um
+ * dígito trocado no CNPJ raiz quebra o vínculo com o dump da CVM em
+ * silêncio: o calendário de resultados fica vazio para aquele ativo e nada
+ * aponta a causa.
+ *
+ * Buscar num catálogo real não afrouxa a regra, troca a ORIGEM do dado: de
+ * "o que o usuário lembrou" para "o que o provedor publica". Os campos
+ * seguem editáveis, porque a fonte erra também — e para BDR e fundos ela
+ * simplesmente não tem o nome.
+ *
+ * A busca dispara no ENVIO, nunca a cada tecla: cada consulta consome 1
+ * request do orçamento diário.
+ */
 function FormAtivo({ aoMudar }: { aoMudar: () => void }) {
+  const [termo, setTermo] = useState("");
+  const [candidatos, setCandidatos] = useState<Candidato[] | null>(null);
+  const [buscando, setBuscando] = useState(false);
   const [ticker, setTicker] = useState("");
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState("acao");
   const [cnpj, setCnpj] = useState("");
   const [aviso, setAviso] = useState<Aviso>(null);
   const [enviando, setEnviando] = useState(false);
+
+  const procurar = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setBuscando(true);
+      setAviso(null);
+      try {
+        setCandidatos(await api.catalogo(termo));
+      } catch (err) {
+        setCandidatos(null);
+        setAviso({ tom: "erro", texto: err instanceof Error ? err.message : String(err) });
+      } finally {
+        setBuscando(false);
+      }
+    },
+    [termo],
+  );
+
+  /** Preenche a partir do catálogo e busca o CNPJ, que vem de outro
+   *  endpoint (mais 1 request) e só faz sentido para o escolhido. */
+  const escolher = useCallback(async (c: Candidato) => {
+    setTicker(c.ticker);
+    setNome(c.nome ?? "");
+    if (c.tipo) setTipo(c.tipo);
+    setCandidatos(null);
+    setAviso(
+      c.nome == null
+        ? { tom: "erro", texto: "A fonte não publica o nome deste ativo — informe abaixo." }
+        : null,
+    );
+    try {
+      const { cnpj_raiz } = await api.cnpjDoCatalogo(c.ticker);
+      if (cnpj_raiz) setCnpj(cnpj_raiz);
+    } catch {
+      // CNPJ é opcional: sem ele o ativo entra, só fica sem o vínculo com
+      // a CVM para o calendário de resultados.
+    }
+  }, []);
 
   const enviar = useCallback(
     async (e: React.FormEvent) => {
@@ -103,6 +162,69 @@ function FormAtivo({ aoMudar }: { aoMudar: () => void }) {
         Pré-requisito de tudo: cotação, opção e notícia referenciam o ativo.
         Regravar o mesmo ticker corrige o cadastro, não duplica.
       </p>
+
+      {/* A busca é um formulário próprio para o Enter procurar em vez de
+          cadastrar — e para a consulta só sair quando pedida. */}
+      <div className="busca-ativo">
+        <div className="form__linha">
+          <label className="form__campo form__campo--largo">
+            <span>Procurar no catálogo da B3</span>
+            <input
+              className="campo"
+              value={termo}
+              onChange={(e) => setTermo(e.target.value)}
+              placeholder="PETR, Vale, banco…"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") procurar(e);
+              }}
+            />
+            <span className="form__ajuda">
+              Nome e CNPJ vêm da fonte — cada busca consome 1 request do
+              orçamento diário.
+            </span>
+          </label>
+          <div className="form__acoes">
+            <button
+              type="button"
+              className="botao"
+              onClick={procurar}
+              disabled={buscando || termo.trim() === ""}
+            >
+              {buscando ? "Procurando…" : "Procurar"}
+            </button>
+          </div>
+        </div>
+
+        {candidatos != null && (
+          candidatos.length === 0 ? (
+            <p className="form__ajuda">Nenhum ativo encontrado para "{termo}".</p>
+          ) : (
+            <ul className="candidatos">
+              {candidatos.map((c) => (
+                <li key={c.ticker}>
+                  <button
+                    type="button"
+                    className={`candidato${c.cadastravel ? "" : " candidato--impedido"}`}
+                    onClick={() => escolher(c)}
+                    disabled={!c.cadastravel && c.tipo == null}
+                  >
+                    <span className="candidato__ticker">{c.ticker}</span>
+                    <span className="candidato__nome">
+                      {c.nome ?? <em>sem nome na fonte</em>}
+                    </span>
+                    {c.setor && <span className="candidato__setor">{c.setor}</span>}
+                    {c.impedimentos.map((i) => (
+                      <span key={i} className="candidato__impedimento">
+                        {i}
+                      </span>
+                    ))}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )
+        )}
+      </div>
 
       <div className="form__linha">
         <label className="form__campo">

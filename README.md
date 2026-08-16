@@ -80,6 +80,33 @@ cadastro escreve por três.
 | `/estrategia` Estratégia | Recomendações, Acompanhamento, Resultados |
 | `/mercado` Mercado | Gráfico, Tickers, Saúde da coleta |
 
+### Cadastro por busca, não por digitação
+
+`add_ativo` exige nome e nunca o deriva do ticker (regra 1: o sistema não
+inventa dado). A consequência era digitar nome e CNPJ à mão — e um dígito
+trocado no CNPJ raiz quebra o vínculo com o dump da CVM em silêncio: o
+calendário de resultados fica vazio para aquele ativo e nada aponta a
+causa.
+
+O cadastro busca no catálogo da B3 (`/catalogo`) e preenche nome, tipo e
+CNPJ da fonte. Isso não afrouxa a regra — troca a ORIGEM do dado, de "o
+que o usuário lembrou" para "o que o provedor publica". Os campos seguem
+editáveis, porque a fonte erra também.
+
+Três armadilhas da fonte que a tela trata em vez de repassar:
+
+- **Nome igual ao ticker.** BDR e fundos voltam com `name` sendo o próprio
+  código. Aceitar seria derivar o nome do ticker pela porta dos fundos.
+- **Mercado fracionário** (`PETR4F`). Cadastrar criaria uma segunda
+  entidade para a mesma empresa, com as posições divididas entre duas
+  linhas que deveriam ser uma.
+- **Tipos que não cabem.** ETF, FI-Infra, FI-Agro, FIP e FIDC são todos
+  `fund` na fonte, e `ativos.tipo` só tem ação, FII e BDR. Mapear ETF para
+  "fii" classificaria errado em silêncio.
+
+Candidato com impedimento continua na lista, com o motivo — sumir sem
+explicação faria o usuário procurar de novo pelo mesmo ticker.
+
 ### Ação e opção não dividem tabela
 
 São grandezas diferentes: numa, quantidade é lote e preço é cotação; na
