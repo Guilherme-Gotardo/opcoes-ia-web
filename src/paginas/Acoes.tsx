@@ -12,6 +12,7 @@ import { Esqueleto, Estado } from "../componentes/Estado";
 import { IconeAlerta } from "../componentes/Icones";
 import { Cadastro } from "../modulos/Cadastro";
 import { Investimentos } from "../modulos/Investimentos";
+import { Watchlist } from "../modulos/Watchlist";
 
 export function Acoes() {
   const painel = usePainelDaTela();
@@ -34,12 +35,21 @@ export function Acoes() {
         <Investimentos carteira={carteira} tipo="ACAO" />
       )}
 
+      {/* A watchlist vem depois do cadastro: só se vigia o que já está
+          cadastrado, e é essa a ordem em que o usuário age. */}
       <Cadastro
         tipo="ACAO"
         comCadastroDeAtivo
         ativos={primeiraCarga ? null : painel.ativos.dado}
         posicoes={primeiraCarga ? null : painel.posicoesAbertas.dado}
         erro={painel.ativos.erro ?? painel.posicoesAbertas.erro}
+        aoMudar={painel.atualizar}
+      />
+
+      <Watchlist
+        watchlist={primeiraCarga ? null : painel.watchlist.dado}
+        ativos={primeiraCarga ? null : painel.ativos.dado}
+        erro={painel.watchlist.erro}
         aoMudar={painel.atualizar}
       />
     </>

@@ -11,6 +11,7 @@ import { Cartao } from "../componentes/Cartao";
 import { Estado } from "../componentes/Estado";
 import { IconeAlerta } from "../componentes/Icones";
 import { Cadastro } from "../modulos/Cadastro";
+import { Caixa } from "../modulos/Caixa";
 import { Investimentos } from "../modulos/Investimentos";
 import { Operacoes } from "../modulos/Operacoes";
 
@@ -41,6 +42,14 @@ export function Opcoes() {
         ativos={primeiraCarga ? null : painel.ativos.dado}
         posicoes={primeiraCarga ? null : painel.posicoesAbertas.dado}
         erro={painel.ativos.erro ?? painel.posicoesAbertas.erro}
+        aoMudar={painel.atualizar}
+      />
+
+      {/* Caixa vive aqui porque é o que torna uma PUT coberta: sem
+          garantia, a avaliação recusa a operação. */}
+      <Caixa
+        caixa={primeiraCarga ? null : painel.caixa.dado}
+        erro={painel.caixa.erro}
         aoMudar={painel.atualizar}
       />
     </>

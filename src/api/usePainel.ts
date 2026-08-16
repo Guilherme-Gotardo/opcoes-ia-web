@@ -16,11 +16,13 @@ import {
   type Cotacao,
   type Desfecho,
   type Ativo,
+  type Caixa,
   type Operacoes,
   type SaudeColeta,
   type Parametros,
   type PosicaoAberta,
   type Resultados,
+  type Watchlist,
   type Sugestao,
 } from "./client";
 
@@ -49,6 +51,8 @@ export type Painel = {
   operacoes: Recurso<Operacoes>;
   parametros: Recurso<Parametros>;
   ativos: Recurso<Ativo[]>;
+  watchlist: Recurso<Watchlist>;
+  caixa: Recurso<Caixa>;
   posicoesAbertas: Recurso<PosicaoAberta[]>;
   /** Quando a tela buscou — não quando o dado foi coletado na origem. */
   buscadoEm: Date | null;
@@ -68,6 +72,8 @@ export function usePainel(): Painel {
   const [operacoes, setOperacoes] = useState<Recurso<Operacoes>>(vazio);
   const [parametros, setParametros] = useState<Recurso<Parametros>>(vazio);
   const [ativos, setAtivos] = useState<Recurso<Ativo[]>>(vazio);
+  const [watchlist, setWatchlist] = useState<Recurso<Watchlist>>(vazio);
+  const [caixa, setCaixa] = useState<Recurso<Caixa>>(vazio);
   const [posicoesAbertas, setPosicoesAbertas] = useState<Recurso<PosicaoAberta[]>>(vazio);
   const [buscadoEm, setBuscadoEm] = useState<Date | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -87,7 +93,9 @@ export function usePainel(): Painel {
       resolver(api.parametros()),
       resolver(api.ativos()),
       resolver(api.posicoes()),
-    ]).then(([c, q, s, d, r, o, ops, p, at, pa]) => {
+      resolver(api.watchlist()),
+      resolver(api.caixa()),
+    ]).then(([c, q, s, d, r, o, ops, p, at, pa, wl, cx]) => {
       if (cancelado) return;
       setCarteira(c);
       setCotacoes(q);
@@ -99,6 +107,8 @@ export function usePainel(): Painel {
       setParametros(p);
       setAtivos(at);
       setPosicoesAbertas(pa);
+      setWatchlist(wl);
+      setCaixa(cx);
       setBuscadoEm(new Date());
       setCarregando(false);
     });
@@ -121,12 +131,15 @@ export function usePainel(): Painel {
     parametros,
     ativos,
     posicoesAbertas,
+    watchlist,
+    caixa,
     buscadoEm,
     carregando,
     apiFora:
       buscadoEm != null &&
       [carteira, cotacoes, sugestoes, desfecho, resultados, saudeColeta,
-       operacoes, parametros, ativos, posicoesAbertas].every((r) => r.erro != null),
+       operacoes, parametros, ativos, posicoesAbertas, watchlist,
+       caixa].every((r) => r.erro != null),
     atualizar,
   };
 }

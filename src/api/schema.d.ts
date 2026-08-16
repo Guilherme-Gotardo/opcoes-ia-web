@@ -88,6 +88,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/watchlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Watchlist
+         * @description Ativos vigiados e o custo que isso impõe ao orçamento diário.
+         */
+        get: operations["listar_watchlist_watchlist_get"];
+        put?: never;
+        /**
+         * Adicionar A Watchlist
+         * @description Passa a vigiar um ativo JÁ CADASTRADO.
+         *
+         *     Vigiar não cadastra: `ativos` é alvo de FK de cotação, opção e notícia,
+         *     e criar o registro aqui exigiria inventar o nome do ativo — o que a
+         *     regra 1 do projeto proíbe.
+         */
+        post: operations["adicionar_a_watchlist_watchlist_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/watchlist/{ticker}/remover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remover Da Watchlist
+         * @description Sai da varredura e para de consumir orçamento. O cadastro e o
+         *     histórico permanecem — isto não descadastra o ativo.
+         */
+        post: operations["remover_da_watchlist_watchlist__ticker__remover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/caixa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ler Caixa */
+        get: operations["ler_caixa_caixa_get"];
+        put?: never;
+        /**
+         * Lancar Caixa
+         * @description Registra um lançamento. É o que torna uma PUT coberta, coberta:
+         *     sem garantia para honrar o exercício ao strike, `avaliar()` recusa a
+         *     operação em vez de tratá-la como coberta.
+         */
+        post: operations["lancar_caixa_caixa_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/carteira": {
         parameters: {
             query?: never;
@@ -332,6 +404,35 @@ export interface components {
              */
             criado_em: string;
         };
+        /** CaixaEntrada */
+        CaixaEntrada: {
+            /**
+             * Valor
+             * @description Positivo aporta, negativo retira. Zero é recusado
+             */
+            valor: number;
+            /** Descricao */
+            descricao?: string | null;
+        };
+        /**
+         * CaixaResposta
+         * @description Saldo e extrato.
+         *
+         *     O saldo é a SOMA dos lançamentos, nunca um número sobrescrito: é o
+         *     "como se chegou até aqui" que explica, meses depois, por que uma
+         *     avaliação aceitou ou recusou uma put.
+         */
+        CaixaResposta: {
+            /** Saldo */
+            saldo: number;
+            /**
+             * Garante Put
+             * @description False quando o saldo é zero — e é isso que faz `avaliar()` recusar a put como não coberta
+             */
+            garante_put: boolean;
+            /** Lancamentos */
+            lancamentos: components["schemas"]["LancamentoResposta"][];
+        };
         /** CanalColetaResposta */
         CanalColetaResposta: {
             /**
@@ -527,6 +628,20 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** LancamentoResposta */
+        LancamentoResposta: {
+            /** Id */
+            id: number;
+            /** Valor */
+            valor: number;
+            /** Descricao */
+            descricao: string | null;
+            /**
+             * Ocorrido Em
+             * Format: date-time
+             */
+            ocorrido_em: string;
         };
         /** MotivoDesfechoResposta */
         MotivoDesfechoResposta: {
@@ -885,6 +1000,46 @@ export interface components {
             /** Volume */
             volume: number | null;
         };
+        /** VigiarEntrada */
+        VigiarEntrada: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * Motivo
+             * @description Por que este ticker entrou na watchlist — a pergunta que aparece meses depois, quando ninguém lembra
+             */
+            motivo?: string | null;
+        };
+        /**
+         * WatchlistResposta
+         * @description A watchlist e o custo que ela impõe.
+         *
+         *     O orçamento vem junto de propósito: vigiar não é de graça, e o número
+         *     de vigiados é limitado por ele. Mostrar a lista sem mostrar o teto
+         *     deixaria o usuário descobrir o limite quando a coleta da carteira
+         *     falhasse no fim do dia.
+         */
+        WatchlistResposta: {
+            /** Vigiados */
+            vigiados: string[];
+            /**
+             * Universo
+             * @description CARTEIRA ∪ VIGIADOS — o que os ETLs coletam e a varredura percorre
+             */
+            universo: string[];
+            /**
+             * Requests Por Ticker Dia
+             * @description Cotação + duas janelas de vela + opções
+             */
+            requests_por_ticker_dia: number;
+            /** Orcamento Diario */
+            orcamento_diario: number;
+            /**
+             * Tickers Suportados
+             * @description Teto de tickers no universo, dado o orçamento
+             */
+            tickers_suportados: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -1021,6 +1176,145 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_watchlist_watchlist_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistResposta"];
+                };
+            };
+        };
+    };
+    adicionar_a_watchlist_watchlist_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VigiarEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_da_watchlist_watchlist__ticker__remover_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ler_caixa_caixa_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaixaResposta"];
+                };
+            };
+        };
+    };
+    lancar_caixa_caixa_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaixaEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
             };
             /** @description Validation Error */
             422: {

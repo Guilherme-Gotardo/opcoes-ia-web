@@ -30,6 +30,9 @@ export type Perna = components["schemas"]["PernaResposta"];
 export type Cenario = components["schemas"]["CenarioResposta"];
 export type Orcamento = components["schemas"]["OrcamentoResposta"];
 export type Parametros = components["schemas"]["ParametrosResposta"];
+export type Watchlist = components["schemas"]["WatchlistResposta"];
+export type Caixa = components["schemas"]["CaixaResposta"];
+export type Lancamento = components["schemas"]["LancamentoResposta"];
 export type Candles = components["schemas"]["CandlesResposta"];
 export type Vela = components["schemas"]["VelaResposta"];
 export type Ativo = components["schemas"]["AtivoResposta"];
@@ -91,6 +94,8 @@ export const api = {
   operacoes: () => buscar<Operacoes>("/operacoes"),
   parametros: () => buscar<Parametros>("/parametros"),
   ativos: () => buscar<Ativo[]>("/ativos"),
+  watchlist: () => buscar<Watchlist>("/watchlist"),
+  caixa: () => buscar<Caixa>("/caixa"),
   posicoes: () => buscar<PosicaoAberta[]>("/posicoes"),
   candles: (ticker: string, intervalo: string, limite = 200) =>
     buscar<Candles>(
@@ -105,6 +110,13 @@ export const api = {
   cadastrarAtivo: (a: AtivoEntrada) => enviar<Ativo>("/ativos", a),
   registrarPosicao: (p: PosicaoEntrada) =>
     enviar<PosicaoCriada>("/posicoes", p),
+  vigiar: (ticker: string, motivo: string | null) =>
+    enviar<{ ticker: string }>("/watchlist", { ticker, motivo }),
+  pararDeVigiar: (ticker: string) =>
+    enviar<null>(`/watchlist/${encodeURIComponent(ticker)}/remover`),
+  lancarCaixa: (valor: number, descricao: string | null) =>
+    enviar<{ id: number; saldo: number }>("/caixa", { valor, descricao }),
+
   encerrarPosicao: (id: number, motivo: string, precoFechamento: number | null) =>
     enviar<null>(`/posicoes/${id}/encerrar`, {
       motivo,

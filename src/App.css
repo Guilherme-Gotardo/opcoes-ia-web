@@ -2511,3 +2511,77 @@
 .operacoes__nota-mes strong {
   color: var(--tinta-2);
 }
+
+/* ------------------------------------------------- watchlist e caixa */
+
+.form--linha {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.form--linha .form__acoes {
+  align-self: flex-end;
+}
+
+.vigiados {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.vigiados li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--raio-p);
+  border: 1px solid var(--borda);
+  background: var(--superficie-2);
+}
+
+.lancamentos {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.lancamentos li {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 12px;
+  padding-block: 8px;
+  border-block-end: 1px solid var(--borda);
+  font-size: 13px;
+}
+
+.lancamentos li:last-child {
+  border-block-end: 0;
+}
+
+.lancamentos__quando {
+  color: var(--tinta-3);
+  font-size: 11.5px;
+  font-family: var(--mono);
+}
+
+.lancamentos__descricao {
+  color: var(--tinta-2);
+}
+
+@media (max-width: 620px) {
+  .lancamentos li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .lancamentos__quando {
+    grid-column: 1 / -1;
+  }
+}
