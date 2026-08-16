@@ -69,6 +69,129 @@ npm run build              # um campo renomeado quebra AQUI, não em runtime
 
 ## Estado
 
-Tela de carteira consumindo a API de leitura (`/carteira`), com patrimônio a
-mercado, preço médio ao lado do preço de mercado e aviso de patrimônio
-parcial. Próximo: sugestões, desfecho da avaliação e as telas de escrita.
+Painel completo: uma página com dez módulos. A leitura consome oito
+endpoints; o cadastro escreve por três.
+
+| Módulo | Fonte | O que mostra |
+|---|---|---|
+| Patrimônio | `/carteira` | Total a mercado, custo, resultado não realizado e concentração |
+| Recomendações | `/sugestoes` | Sugestões em aberto com o snapshot de critérios |
+| Investimentos | `/carteira` | Posições, com preço médio ao lado do preço de mercado |
+| Cadastro | `/ativos`, `/posicoes` | Cadastro de ativo e registro/encerramento de posição |
+| Gráfico | `/candles` | Velas OHLC com preço médio e cotação marcados |
+| Exposição | `/carteira` | Fatia de cada ativo-objeto no patrimônio |
+| Tickers | `/cotacoes` + `/parametros` | Cotação, idade da coleta e a janela de frescor vigente |
+| Acompanhamento | `/desfecho` | Por que (não) saiu sugestão, critério a critério |
+| Resultados | `/resultados` | Calendário de divulgação, com tier de confiança e o que está registrado mas não consolidado |
+| Operação | `/operacao` | Última entrega de cada fonte e orçamento diário de requests |
+
+Cada módulo carrega o próprio erro — `/desfecho` fora do ar não apaga a
+carteira da tela. Só quando TODOS falham a interface conclui que a API
+está fora.
+
+Como as regras do projeto principal aparecem na interface:
+
+- **Preço médio é custo.** Fica numa coluna própria, ao lado do preço de
+  mercado, com peso visual menor. A linha de total não soma colunas de preço
+  unitário; o custo total tem nome próprio no rodapé.
+- **Patrimônio parcial é declarado.** O aviso fica junto do número, com os
+  tickers e os motivos, e o resultado diz sobre quantas posições foi apurado.
+- **Nada é ordem.** Não há botão de executar em lugar nenhum, e toda sugestão
+  carrega o aviso de revisão humana.
+- **Ausência de sugestão é resultado, não falha.** O estado vazio explica isso
+  e leva ao acompanhamento, que mostra em qual critério cada opção parou.
+
+### Duas famílias de cor que não se misturam
+
+- **Direção de preço** (`--ganho` / `--perda`): verde e vermelho, exclusivos
+  disto.
+- **Estado do dado** (`--estado-ok`, `--estado-obsoleto`,
+  `--estado-bloqueado`, `--estado-indisponivel`): hue próprio.
+
+Cotação velha não é prejuízo e ausência de dado não é queda — se verde
+significasse "dado ok" e "lucro" ao mesmo tempo, um pregão vermelho
+competiria com uma cotação ausente pelo mesmo sinal. Todos os tons foram
+validados para contraste AA de texto sobre as superfícies reais do app, nos
+dois temas. Cor nunca é o único canal: todo selo de estado vem com ícone e
+rótulo.
+
+### Ausência de dado tem nome
+
+Não existe `—` solto. O componente `Ausente` nomeia a consequência no lugar
+onde ela aparece: "sem cotação" numa célula de preço, "não valorizado" numa
+de valor, "não apurado" no resultado, "fora do total" na participação. O
+`motivo_sem_cotacao` da API vira o `title`.
+
+### Estado vazio mostra o comando que destrava
+
+Quando falta um passo no repositório principal, a tela mostra o comando
+exato — com botão de copiar — em vez de descrever o passo em prosa.
+
+### Registrar não é consolidar, e a tela mostra isso
+
+O módulo de resultados começa pelas datas que estão em
+`earnings_manual_entries` e nunca foram promovidas por `earnings.ingest`.
+É o estado mais caro do fluxo justamente por ser silencioso: a data existe
+no banco, o motor de opções não a enxerga, e a avaliação segue bloqueada
+como se não houvesse data. Cada pendência vem com o comando que a resolve.
+
+### Data pura não tem fuso
+
+`data()` em `src/lib/formato.ts` monta `YYYY-MM-DD` como meia-noite LOCAL em
+vez de passar por `new Date(iso)`. O caminho ingênuo lê a string como
+meia-noite UTC e, renderizada em UTC−3, ela vira o dia anterior — num
+calendário de divulgação de resultado, um dia de erro é exatamente o erro
+que o módulo de earnings existe para evitar. Foi um bug real, pego ao
+renderizar o estado preenchido.
+
+### O que a interface NÃO sabe sobre a coleta
+
+O módulo de operação reporta última entrega e orçamento, e declara o próprio
+limite: o projeto **não registra execução com erro** em lugar nenhum
+(`rastreia_falhas: false` no contrato). "Nada hoje" significa que nada foi
+gravado — pode ser fonte quebrada ou dia sem novidade, e o banco não
+distingue. Uma timeline de agente de verdade exige instrumentar os ETLs para
+gravar cada execução; até lá, a tela não finge saber.
+
+O orçamento é aproximado pela mesma razão honesta: não há contagem de
+requests, ele é estimado pelas linhas gravadas e SUBESTIMA quando um request
+falha antes de gravar. A API marca `e_aproximacao` e a tela mostra a marca.
+
+### Escrever aqui é escriturar, não operar
+
+O cadastro grava o que você JÁ tem na corretora — a mesma coisa que
+`portfolio.manage` faz, com formulário no lugar do terminal. Nada é enviado
+para lugar nenhum, e a API não ganhou nenhum endpoint que dispare execução.
+A superfície de escrita vive em `src/api/escrita.py`, separada, para que o
+guardrail que prova "a leitura não escreve" continue possível de escrever.
+
+Duas decisões de formulário que vêm do domínio: **comprada/lançada é botão**
+(o sinal negativo da venda é aplicado pelo código, não digitado — um sinal
+trocado inverte a operação inteira), e **ticker de ação é select** do que
+está cadastrado, porque o domínio recusa posição em ativo desconhecido.
+
+### O gráfico segue o dado, não o contrário
+
+`/candles` devolve o intervalo junto com as velas e a lista de intervalos
+disponíveis para aquele ticker. Passar o ETL a coletar 15m faz a interface
+oferecer 15m sem nenhuma mudança no front — era o requisito.
+
+A escala é a das velas. Um marcador distante (preço médio bem abaixo do
+mercado, por exemplo) NÃO estica o eixo: ele é fixado na borda com uma seta
+e o valor real no rótulo. Esticar espremia as velas numa faixa fina e
+tornava ilegível justamente o dado principal.
+
+Posição em opção não vira linha de strike: `posicoes` guarda o código da
+opção, não o strike, e derivá-lo exigiria interpretar código B3 — que o
+projeto não faz em lugar nenhum.
+
+## O que o contrato ainda não tem
+
+Dados que o modelo de referência assume e a API não expõe: variação do dia
+(`/carteira` devolve só preço corrente), nome do ativo por ticker na
+carteira, e os campos de opção (delta, IV, IV rank) fora do blob
+`criterios`. Para marcar strike de opção no gráfico faltaria guardar strike
+e vencimento em `posicoes` — hoje só o código da opção é registrado.
+
+Próximo: as telas de escrita (`assets.manage`, `portfolio.manage`,
+`earnings.manage`).

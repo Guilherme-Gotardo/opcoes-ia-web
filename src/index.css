@@ -1,111 +1,234 @@
+/**
+ * Tokens e base.
+ *
+ * Um só lugar define cor, superfície e tinta; o resto do app escreve contra
+ * papéis (`--tinta-2`, `--superficie`), nunca contra hex. É o que faz o tema
+ * claro/escuro trocar em um ponto só.
+ *
+ * As cores de dado (série, status, ganho/perda) foram validadas contra AS
+ * SUPERFÍCIES REAIS deste app, não herdadas no olho: contraste, banda de
+ * luminosidade e separação para daltonismo. Trocar um hex aqui pede revalidar.
+ */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  color-scheme: light;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Superfícies */
+  --plano: #f6f7f9;
+  --superficie: #ffffff;
+  --superficie-2: #f4f6f8;
+  --superficie-3: #eceff3;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
+  /* Tinta */
+  --tinta: #0b0f14;
+  --tinta-2: #4a5561;
+  --tinta-3: #7c8894;
+
+  /* Estrutura */
+  --borda: #e2e6ec;
+  --borda-forte: #cdd4dd;
+
+  /* Acento — mesmo azul da série 1 */
+  --acento: #2a78d6;
+  --acento-tinta: #1c5cab;
+  --acento-suave: rgba(42, 120, 214, 0.1);
+  --acento-borda: rgba(42, 120, 214, 0.35);
+
+  /* Série de dado */
+  --serie-1: #2a78d6;
+  --serie-1-trilho: #cde2fb;
+
+  /*
+   * Duas famílias de cor que NÃO se misturam:
+   *
+   * 1. Direção de preço (--ganho / --perda). Verde e vermelho são exclusivos
+   *    disto. Se verde também significasse "dado ok", um pregão vermelho e
+   *    uma cotação ausente competiriam pelo mesmo sinal.
+   * 2. Estado do dado (--estado-*). Tem hue próprio justamente para não ser
+   *    lido como lucro ou prejuízo: "obsoleto" não é perda, "indisponível"
+   *    não é queda.
+   *
+   * Todos validados para contraste AA de texto sobre as superfícies deste
+   * app, nos dois temas.
+   */
+  --ganho: #006300;
+  --ganho-suave: rgba(12, 163, 12, 0.12);
+  --perda: #c62d2d;
+  --perda-suave: rgba(208, 59, 59, 0.12);
+
+  --estado-ok: #0f766e;
+  --estado-ok-suave: rgba(15, 118, 110, 0.11);
+  --estado-obsoleto: #a16207;
+  --estado-obsoleto-suave: rgba(161, 98, 7, 0.12);
+  --estado-bloqueado: #6d28d9;
+  --estado-bloqueado-suave: rgba(109, 40, 217, 0.11);
+  --estado-indisponivel: #5b6672;
+  --estado-indisponivel-suave: rgba(91, 102, 114, 0.1);
+
+  --sombra:
+    rgba(11, 15, 20, 0.04) 0 1px 2px, rgba(11, 15, 20, 0.04) 0 4px 12px -2px;
+  --sombra-alta:
+    rgba(11, 15, 20, 0.08) 0 4px 6px -2px, rgba(11, 15, 20, 0.1) 0 12px 28px -6px;
+
+  --sans:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --raio: 12px;
+  --raio-p: 8px;
+  --raio-g: 16px;
+
+  --topo: 60px; /* altura da barra fixa; usada no scroll-margin das seções */
+
+  font: 15px/1.5 var(--sans);
+  color: var(--tinta-2);
+  background: var(--plano);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+  :root:not([data-tema="claro"]) {
+    color-scheme: dark;
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    --plano: #0b0e13;
+    --superficie: #151a23;
+    --superficie-2: #1b212c;
+    --superficie-3: #222936;
+
+    --tinta: #f2f5f8;
+    --tinta-2: #a8b3c0;
+    --tinta-3: #78848f;
+
+    --borda: #262e3a;
+    --borda-forte: #36404f;
+
+    --acento: #3987e5;
+    --acento-tinta: #86b6ef;
+    --acento-suave: rgba(57, 135, 229, 0.16);
+    --acento-borda: rgba(57, 135, 229, 0.45);
+
+    --serie-1: #3987e5;
+    --serie-1-trilho: #1c3050;
+
+    --ganho: #0ca30c;
+    --ganho-suave: rgba(12, 163, 12, 0.18);
+    --perda: #e66767;
+    --perda-suave: rgba(230, 103, 103, 0.16);
+
+    --estado-ok: #2dd4bf;
+    --estado-ok-suave: rgba(45, 212, 191, 0.14);
+    --estado-obsoleto: #fab219;
+    --estado-obsoleto-suave: rgba(250, 178, 25, 0.14);
+    --estado-bloqueado: #a78bfa;
+    --estado-bloqueado-suave: rgba(167, 139, 250, 0.15);
+    --estado-indisponivel: #8a94a3;
+    --estado-indisponivel-suave: rgba(138, 148, 163, 0.13);
+
+    --sombra: rgba(0, 0, 0, 0.4) 0 1px 2px, rgba(0, 0, 0, 0.3) 0 4px 12px -2px;
+    --sombra-alta:
+      rgba(0, 0, 0, 0.5) 0 4px 6px -2px, rgba(0, 0, 0, 0.45) 0 12px 28px -6px;
   }
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+:root[data-tema="escuro"] {
+  color-scheme: dark;
+
+  --plano: #0b0e13;
+  --superficie: #151a23;
+  --superficie-2: #1b212c;
+  --superficie-3: #222936;
+
+  --tinta: #f2f5f8;
+  --tinta-2: #a8b3c0;
+  --tinta-3: #78848f;
+
+  --borda: #262e3a;
+  --borda-forte: #36404f;
+
+  --acento: #3987e5;
+  --acento-tinta: #86b6ef;
+  --acento-suave: rgba(57, 135, 229, 0.16);
+  --acento-borda: rgba(57, 135, 229, 0.45);
+
+  --serie-1: #3987e5;
+  --serie-1-trilho: #1c3050;
+
+  --ganho: #0ca30c;
+  --ganho-suave: rgba(12, 163, 12, 0.18);
+  --perda: #e66767;
+  --perda-suave: rgba(230, 103, 103, 0.16);
+
+  --estado-ok: #2dd4bf;
+  --estado-ok-suave: rgba(45, 212, 191, 0.14);
+  --estado-obsoleto: #fab219;
+  --estado-obsoleto-suave: rgba(250, 178, 25, 0.14);
+  --estado-bloqueado: #a78bfa;
+  --estado-bloqueado-suave: rgba(167, 139, 250, 0.15);
+  --estado-indisponivel: #8a94a3;
+  --estado-indisponivel-suave: rgba(138, 148, 163, 0.13);
+
+  --sombra: rgba(0, 0, 0, 0.4) 0 1px 2px, rgba(0, 0, 0, 0.3) 0 4px 12px -2px;
+  --sombra-alta:
+    rgba(0, 0, 0, 0.5) 0 4px 6px -2px, rgba(0, 0, 0, 0.45) 0 12px 28px -6px;
+}
+
+* {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  min-height: 100svh;
+  background: var(--plano);
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+h2,
+h3 {
+  color: var(--tinta);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
 p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+a {
+  color: var(--acento-tinta);
+}
+
+button {
+  font: inherit;
+  color: inherit;
 }
 
 code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  font-family: var(--mono);
+  font-size: 0.9em;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--superficie-3);
+  color: var(--tinta);
+}
+
+:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

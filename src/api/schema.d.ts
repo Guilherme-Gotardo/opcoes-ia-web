@@ -4,6 +4,86 @@
  */
 
 export interface paths {
+    "/ativos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Ativos
+         * @description Ativos cadastrados — o pré-requisito de todo o resto.
+         *
+         *     `cotacoes`, `opcoes` e `noticias` têm FK para `ativos`: sem cadastro, o
+         *     ETL recusa o ticker e registrar posição em ação falha.
+         */
+        get: operations["listar_ativos_ativos_get"];
+        put?: never;
+        /**
+         * Cadastrar Ativo
+         * @description Cadastra ou CORRIGE um ativo.
+         *
+         *     Regravar o mesmo ticker atualiza a linha em vez de duplicar ou falhar —
+         *     as cotações já coletadas continuam associadas, porque a chave primária
+         *     não muda.
+         */
+        post: operations["cadastrar_ativo_ativos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posicoes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Posicoes
+         * @description Posições em aberto (`fechada_em IS NULL`).
+         */
+        get: operations["listar_posicoes_posicoes_get"];
+        put?: never;
+        /**
+         * Registrar Posicao
+         * @description Registra uma posição que o usuário JÁ tem.
+         *
+         *     Isto é escrituração, não ordem: o sistema não fala com corretora em
+         *     lugar nenhum. Quantidade negativa registra posição lançada — o caso da
+         *     venda coberta.
+         */
+        post: operations["registrar_posicao_posicoes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posicoes/{posicao_id}/encerrar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Encerrar Posicao
+         * @description Marca `fechada_em`. A linha NUNCA é removida: o histórico é o que
+         *     permite explicar uma decisão passada meses depois.
+         */
+        post: operations["encerrar_posicao_posicoes__posicao_id__encerrar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/carteira": {
         parameters: {
             query?: never;
@@ -80,10 +160,169 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/resultados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resultados
+         * @description Calendário de divulgação de resultado por ativo.
+         *
+         *     Duas coisas que este endpoint não faz, de propósito: não roda o
+         *     `ingest` (a API não dispara) e não decide se a data é boa o bastante —
+         *     quem faz isso é `EarningsRiskService`. Aqui se expõe o estado como ele
+         *     está no banco, inclusive quando esse estado é "o usuário registrou e
+         *     ninguém consolidou".
+         */
+        get: operations["resultados_resultados_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operacao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Operacao
+         * @description Quando cada fonte entregou dado pela última vez, e quanto do
+         *     orçamento diário de requests já foi gasto.
+         *
+         *     NÃO é um log de execução — o projeto não grava tentativa, erro nem
+         *     duração em lugar nenhum. Por isso a resposta carrega
+         *     `rastreia_falhas=False`: ausência de entrega recente aqui significa
+         *     "não gravou nada", que pode ser fonte quebrada ou simplesmente dia sem
+         *     novidade, e o banco não sabe qual dos dois.
+         */
+        get: operations["operacao_operacao_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/candles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Candles
+         * @description Velas OHLC de um ticker, mais antigas primeiro.
+         *
+         *     O corte por `limite` é feito pelas MAIS RECENTES (ORDER BY DESC no
+         *     subselect) e só depois reordenado para o desenho: pedir 200 velas de uma
+         *     série de 5.000 precisa devolver as 200 últimas, não as 200 primeiras.
+         */
+        get: operations["candles_candles_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/parametros": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Parametros
+         * @description Os parâmetros de `params.yaml` que a interface precisa citar.
+         *
+         *     Sem isto a interface duplicaria a janela de frescor e a política de
+         *     resultado desconhecido — e passaria a mentir em silêncio no dia em que
+         *     esses valores mudassem aqui.
+         */
+        get: operations["parametros_parametros_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AtivoEntrada */
+        AtivoEntrada: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * Nome
+             * @description Obrigatório: o sistema NUNCA deriva nome a partir do ticker
+             */
+            nome: string;
+            /**
+             * Tipo
+             * @description acao | fii | bdr
+             * @default acao
+             */
+            tipo: string;
+            /**
+             * Cnpj Raiz
+             * @description 8 dígitos, a RAIZ do CNPJ — é o que liga o ativo ao dump da CVM para datas de resultado
+             */
+            cnpj_raiz?: string | null;
+        };
+        /** AtivoResposta */
+        AtivoResposta: {
+            /** Ticker */
+            ticker: string;
+            /** Nome */
+            nome: string;
+            /** Tipo */
+            tipo: string;
+            /** Cnpj Raiz */
+            cnpj_raiz: string | null;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
+        };
+        /**
+         * CandlesResposta
+         * @description Série de velas de um ticker, em ordem cronológica.
+         *
+         *     `intervalo` volta na resposta de propósito: é o que permite a interface
+         *     desenhar o eixo correto sem supor a granularidade. Trocar o ETL para
+         *     coletar 15m passa a refletir aqui sem mudança no contrato.
+         */
+        CandlesResposta: {
+            /** Ticker */
+            ticker: string;
+            /** Intervalo */
+            intervalo: string;
+            /** Velas */
+            velas: components["schemas"]["VelaResposta"][];
+            /**
+             * Intervalos Disponiveis
+             * @description Intervalos que já têm vela gravada para este ticker
+             */
+            intervalos_disponiveis: string[];
+        };
         /** CarteiraResposta */
         CarteiraResposta: {
             /** Posicoes */
@@ -103,6 +342,25 @@ export interface components {
             exposicao_pct_por_ativo: {
                 [key: string]: number;
             };
+        };
+        /** ColetaResposta */
+        ColetaResposta: {
+            /**
+             * Canal
+             * @description O que é coletado: cotações, opções, notícias, resultados
+             */
+            canal: string;
+            /** Fonte */
+            fonte: string;
+            /**
+             * Ultima Entrega Em
+             * @description Última vez que esta fonte GRAVOU dado. Não é 'última tentativa': uma falha não deixa rastro no banco
+             */
+            ultima_entrega_em: string | null;
+            /** Registros Hoje */
+            registros_hoje: number;
+            /** Ja Entregou */
+            ja_entregou: boolean;
         };
         /** CotacaoResposta */
         CotacaoResposta: {
@@ -126,6 +384,78 @@ export interface components {
             ha_registro: boolean;
             /** Motivos */
             motivos: components["schemas"]["MotivoDesfechoResposta"][];
+        };
+        /** EventoResultadoResposta */
+        EventoResultadoResposta: {
+            /** Ticker */
+            ticker: string;
+            /** Empresa */
+            empresa: string | null;
+            /** Periodo Fiscal */
+            periodo_fiscal: string;
+            /**
+             * Data Efetiva
+             * @description A confirmada quando existe, senão a estimada — é esta que o motor de opções consulta
+             */
+            data_efetiva: string | null;
+            /** Data Estimada */
+            data_estimada: string | null;
+            /**
+             * Data Confirmada
+             * @description Coluna separada da estimada de propósito: manter as duas preserva a discordância em vez de apagá-la
+             */
+            data_confirmada: string | null;
+            /** Hora Efetiva */
+            hora_efetiva: string | null;
+            /**
+             * Sessao
+             * @description UNKNOWN não é ausência a ignorar — é estado que AMPLIA a janela de risco
+             */
+            sessao: string;
+            /** Status */
+            status: string;
+            /** Confianca */
+            confianca: number;
+            /** Faixa Confianca */
+            faixa_confianca: string;
+            /** Confirmado */
+            confirmado: boolean;
+            /**
+             * Conflitos
+             * @description Divergências entre fontes, preservadas em vez de resolvidas em silêncio
+             */
+            conflitos: unknown[];
+            /**
+             * Atualizado Em
+             * Format: date-time
+             */
+            atualizado_em: string;
+            /** Fontes */
+            fontes: components["schemas"]["FonteResultadoResposta"][];
+        };
+        /**
+         * FonteResultadoResposta
+         * @description O que UMA fonte afirmou sobre a data, preservado como veio.
+         *
+         *     Linhas perdedoras de um conflito continuam aqui: são o rastro que
+         *     responde "por que o sistema achava isso?" meses depois.
+         */
+        FonteResultadoResposta: {
+            /** Provedor */
+            provedor: string;
+            /** Data Reportada */
+            data_reportada: string | null;
+            /** Status */
+            status: string | null;
+            /** Confianca */
+            confianca: number;
+            /**
+             * Obtida Em
+             * Format: date-time
+             */
+            obtida_em: string;
+            /** Url */
+            url: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -152,6 +482,152 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /**
+         * OperacaoResposta
+         * @description Saúde da coleta, derivada do dado que já existe.
+         *
+         *     Este recurso NÃO é um log de execução: o projeto não grava tentativas,
+         *     erros nem duração. Ele responde "quando cada fonte entregou dado pela
+         *     última vez", que é o que o banco realmente sabe. `rastreia_falhas`
+         *     declara esse limite no próprio contrato para que a interface não
+         *     apresente silêncio como se fosse saúde.
+         */
+        OperacaoResposta: {
+            /** Coletas */
+            coletas: components["schemas"]["ColetaResposta"][];
+            orcamento: components["schemas"]["OrcamentoResposta"];
+            /** Ultima Avaliacao Em */
+            ultima_avaliacao_em: string | null;
+            /**
+             * Rastreia Falhas
+             * @description Sempre False: nada registra execução com erro. Fonte sem entrega recente pode estar quebrada OU apenas sem novidade — o banco não distingue os dois casos
+             * @default false
+             */
+            rastreia_falhas: boolean;
+        };
+        /** OrcamentoResposta */
+        OrcamentoResposta: {
+            /** Fonte */
+            fonte: string;
+            /** Limite Diario */
+            limite_diario: number;
+            /** Gastos Hoje */
+            gastos_hoje: number;
+            /** Restante Hoje */
+            restante_hoje: number;
+            /**
+             * E Aproximacao
+             * @description Sempre True: não há tabela de contagem de requests. O gasto é estimado pelas linhas gravadas hoje, o que SUBESTIMA quando um request falha antes de gravar
+             * @default true
+             */
+            e_aproximacao: boolean;
+        };
+        /**
+         * ParametrosResposta
+         * @description Parâmetros de `params.yaml` que a interface precisa para explicar o
+         *     que mostra.
+         *
+         *     Existem no contrato porque a alternativa é a interface duplicar os
+         *     números e passar a mentir em silêncio quando eles mudarem aqui.
+         */
+        ParametrosResposta: {
+            /**
+             * Cotacao Frescor Maximo Horas
+             * @description Idade máxima da cotação para valer como preço de mercado. Passou disso, a avaliação para como 'dado insuficiente' — não existe fallback para preço médio
+             */
+            cotacao_frescor_maximo_horas: number;
+            /** Politica Resultado Desconhecido */
+            politica_resultado_desconhecido: string;
+        };
+        /**
+         * PendenteConsolidacaoResposta
+         * @description Data que o usuário registrou e que NUNCA virou evento consultável.
+         *
+         *     Registrar não é consolidar: `earnings.manage add` grava o que o usuário
+         *     leu no site de RI, e só `earnings.ingest` promove aquilo para
+         *     `earnings_events`. Sem o segundo passo a data existe no banco e a
+         *     avaliação segue bloqueada — a armadilha mais cara deste fluxo, e por
+         *     isso ela é exposta como estado próprio em vez de ficar invisível.
+         */
+        PendenteConsolidacaoResposta: {
+            /** Ticker */
+            ticker: string;
+            /** Periodo Fiscal */
+            periodo_fiscal: string;
+            /**
+             * Data Resultado
+             * Format: date
+             */
+            data_resultado: string;
+            /** Sessao */
+            sessao: string;
+            /** Origem */
+            origem: string | null;
+            /**
+             * Registrado Em
+             * Format: date-time
+             */
+            registrado_em: string;
+            /**
+             * Comando Para Consolidar
+             * @description O comando exato que promove esta entrada a evento
+             */
+            comando_para_consolidar: string;
+        };
+        /** PosicaoAbertaResposta */
+        PosicaoAbertaResposta: {
+            /** Id */
+            id: number;
+            /** Ticker */
+            ticker: string;
+            /** Tipo Ativo */
+            tipo_ativo: string;
+            /** Quantidade */
+            quantidade: number;
+            /** Preco Medio */
+            preco_medio: number;
+            /**
+             * Aberta Em
+             * Format: date-time
+             */
+            aberta_em: string;
+            /** Origem */
+            origem: string;
+        };
+        /** PosicaoCriada */
+        PosicaoCriada: {
+            /** Id */
+            id: number;
+            /**
+             * Executou Ordem
+             * @description Sempre False. Registrar posição é espelhar o que já existe na corretora; nada foi enviado a lugar nenhum
+             * @default false
+             */
+            executou_ordem: boolean;
+        };
+        /** PosicaoEntrada */
+        PosicaoEntrada: {
+            /**
+             * Ticker
+             * @description Em ACAO é o ticker do ativo (precisa estar cadastrado); em OPCAO é o CÓDIGO da opção, que não é linha em `ativos`
+             */
+            ticker: string;
+            /**
+             * Tipo Ativo
+             * @description ACAO | OPCAO
+             */
+            tipo_ativo: string;
+            /**
+             * Quantidade
+             * @description Negativo = posição LANÇADA (vendida). É assim que uma venda coberta é registrada
+             */
+            quantidade: number;
+            /**
+             * Preco Medio
+             * @description Base de custo — nunca valor de mercado
+             */
+            preco_medio: number;
+        };
         /** PosicaoResposta */
         PosicaoResposta: {
             /** Ticker */
@@ -173,6 +649,18 @@ export interface components {
             motivo_sem_cotacao: string | null;
             /** Valor */
             valor: number | null;
+        };
+        /** ResultadosResposta */
+        ResultadosResposta: {
+            /** Eventos */
+            eventos: components["schemas"]["EventoResultadoResposta"][];
+            /** Pendentes Consolidacao */
+            pendentes_consolidacao: components["schemas"]["PendenteConsolidacaoResposta"][];
+            /**
+             * Politica Resultado Desconhecido
+             * @description O que a avaliação faz sem data confiável: `bloquear` (padrão, conservador) ou `sinalizar`. Reprovação em critério de mercado sempre vence a política
+             */
+            politica_resultado_desconhecido: string;
         };
         /** SugestaoResposta */
         SugestaoResposta: {
@@ -216,6 +704,25 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** VelaResposta */
+        VelaResposta: {
+            /**
+             * Abertura Em
+             * Format: date-time
+             * @description INÍCIO do período, não o momento da coleta
+             */
+            abertura_em: string;
+            /** Abertura */
+            abertura: number;
+            /** Maxima */
+            maxima: number;
+            /** Minima */
+            minima: number;
+            /** Fechamento */
+            fechamento: number;
+            /** Volume */
+            volume: number | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -225,6 +732,141 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listar_ativos_ativos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AtivoResposta"][];
+                };
+            };
+        };
+    };
+    cadastrar_ativo_ativos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AtivoEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AtivoResposta"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_posicoes_posicoes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosicaoAbertaResposta"][];
+                };
+            };
+        };
+    };
+    registrar_posicao_posicoes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PosicaoEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosicaoCriada"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    encerrar_posicao_posicoes__posicao_id__encerrar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                posicao_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     carteira_carteira_get: {
         parameters: {
             query?: never;
@@ -312,6 +954,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resultados_resultados_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadosResposta"];
+                };
+            };
+        };
+    };
+    operacao_operacao_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperacaoResposta"];
+                };
+            };
+        };
+    };
+    candles_candles_get: {
+        parameters: {
+            query: {
+                ticker: string;
+                intervalo?: string;
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandlesResposta"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parametros_parametros_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParametrosResposta"];
                 };
             };
         };
