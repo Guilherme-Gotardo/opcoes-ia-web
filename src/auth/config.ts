@@ -18,12 +18,12 @@ export const authConfig = {
   redirectUri: configuracao(
     import.meta.env.VITE_COGNITO_REDIRECT_URI,
     producao
-      ? "https://opcoes-ia-web.pages.dev/auth/callback"
+      ? "https://d1krzquhhr159h.cloudfront.net/auth/callback"
       : "http://localhost:5173/auth/callback",
   ),
   logoutUri: configuracao(
     import.meta.env.VITE_COGNITO_LOGOUT_URI,
-    producao ? "https://opcoes-ia-web.pages.dev/" : "http://localhost:5173/",
+    producao ? "https://d1krzquhhr159h.cloudfront.net/" : "http://localhost:5173/",
   ),
   scope: "openid email opcoes-ia/api",
 } as const;

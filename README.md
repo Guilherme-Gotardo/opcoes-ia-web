@@ -19,11 +19,12 @@ Substitui as CLIs de entrada manual (`assets.manage`, `portfolio.manage`,
 
 ## Contexto de uso
 
-Ferramenta de **um usuário só**, publicada no Cloudflare Pages. O bundle e
-publico, mas nenhum dado vem nele: Cognito exige authorization code + PKCE,
-senha e TOTP antes de a API Gateway aceitar leitura ou escrita. O browser guarda
-somente o access token e sua expiracao em `sessionStorage`; nao existe client
-secret, credencial AWS ou string do banco neste repositorio.
+Ferramenta de **um usuário só**, publicada por CloudFront sobre bucket S3
+privado. O bundle e publico, mas nenhum dado vem nele: Cognito exige
+authorization code + PKCE, senha e TOTP antes de a API Gateway aceitar leitura
+ou escrita. O browser guarda somente o access token e sua expiracao em
+`sessionStorage`; nao existe client secret, credencial AWS ou string do banco
+neste repositorio.
 
 ## Stack
 
@@ -47,8 +48,13 @@ npm run dev                # http://localhost:5173
 O build de producao usa as configuracoes publicas de `.env.production`: endpoint
 regional `execute-api`, Hosted UI, app client sem secret, callback
 `/auth/callback` e logout. Antes de publicar, a API e o app client precisam ter
-exatamente a origem/callback `https://opcoes-ia-web.pages.dev` e o escopo
+exatamente a origem/callback `https://d1krzquhhr159h.cloudfront.net` e o escopo
 `opcoes-ia/api`.
+
+O workflow `deploy-aws.yml` usa OIDC, sem chave AWS permanente. Ele gera os
+tipos contra o OpenAPI versionado do repositório principal, executa lint/build,
+publica assets content-addressed com cache imutável, publica o shell sem cache e
+invalida a distribuição somente depois do upload completo.
 
 ## Tipos gerados do contrato
 

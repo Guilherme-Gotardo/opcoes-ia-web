@@ -1,0 +1,72 @@
+name: Deploy AWS frontend
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-web-prod
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: sa-east-1
+  WEB_BUCKET: opcoes-ia-prod-web-351093152305
+  CLOUDFRONT_DISTRIBUTION_ID: ECN1AA7ZM0SFW
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: Principal
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: opcoes-ia-web
+      - uses: actions/checkout@v4
+        with:
+          repository: Guilherme-Gotardo/opcoes-ia
+          path: opcoes-ia
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: opcoes-ia-web/package-lock.json
+      - name: Install exact frontend dependencies
+        working-directory: opcoes-ia-web
+        run: npm ci
+      - name: Generate and verify OpenAPI types
+        working-directory: opcoes-ia-web
+        run: |
+          npm run gerar-tipos
+          git diff --exit-code -- src/api/schema.d.ts
+      - name: Lint and build production bundle
+        working-directory: opcoes-ia-web
+        run: |
+          npm run lint
+          npm run build
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::351093152305:role/opcoes-ia-prod-github-web-publish
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Publish complete bundle then invalidate shell
+        working-directory: opcoes-ia-web
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws s3 sync dist/assets "s3://${WEB_BUCKET}/assets" --delete \
+            --cache-control "public,max-age=31536000,immutable"
+          aws s3 sync dist "s3://${WEB_BUCKET}" --delete --exclude "assets/*" \
+            --cache-control "no-cache"
+          invalidation_id="$(aws cloudfront create-invalidation \
+            --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" \
+            --paths "/" "/index.html" "/auth/callback" \
+            --query 'Invalidation.Id' --output text)"
+          aws cloudfront wait invalidation-completed \
+            --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" \
+            --id "$invalidation_id"
