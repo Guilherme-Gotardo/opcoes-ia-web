@@ -12,6 +12,7 @@ import { Estado } from "../componentes/Estado";
 import { IconeAlerta } from "../componentes/Icones";
 import { Cadastro } from "../modulos/Cadastro";
 import { Caixa } from "../modulos/Caixa";
+import { Enriquecimento } from "../modulos/Enriquecimento";
 import { Investimentos } from "../modulos/Investimentos";
 import { Operacoes } from "../modulos/Operacoes";
 
@@ -43,6 +44,14 @@ export function Opcoes() {
         posicoes={primeiraCarga ? null : painel.posicoesAbertas.dado}
         erro={painel.ativos.erro ?? painel.posicoesAbertas.erro}
         aoMudar={painel.atualizar}
+      />
+
+      {/* Depois das posições e antes do caixa: é leitura de APOIO à
+          decisão, não entrada de dado. E vive em Opções, não em
+          Estratégia, porque descreve contratos — não critérios. */}
+      <Enriquecimento
+        enriquecimento={primeiraCarga ? null : painel.enriquecimento.dado}
+        erro={painel.enriquecimento.erro}
       />
 
       {/* Caixa vive aqui porque é o que torna uma PUT coberta: sem

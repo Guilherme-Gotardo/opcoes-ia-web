@@ -36,6 +36,9 @@ export type Parametros = components["schemas"]["ParametrosResposta"];
 export type Watchlist = components["schemas"]["WatchlistResposta"];
 export type Candidato = components["schemas"]["CandidatoResposta"];
 export type Caixa = components["schemas"]["CaixaResposta"];
+export type Enriquecimento = components["schemas"]["EnriquecimentoResposta"];
+export type EnriquecimentoItem =
+  components["schemas"]["EnriquecimentoItemResposta"];
 export type Lancamento = components["schemas"]["LancamentoResposta"];
 export type Candles = components["schemas"]["CandlesResposta"];
 export type Vela = components["schemas"]["VelaResposta"];
@@ -106,6 +109,7 @@ export const api = {
       `/catalogo/${encodeURIComponent(ticker)}/cnpj`,
     ),
   caixa: () => buscar<Caixa>("/caixa"),
+  enriquecimento: () => buscar<Enriquecimento>("/enriquecimento"),
   posicoes: () => buscar<PosicaoAberta[]>("/posicoes"),
   candles: (ticker: string, intervalo: string, limite = 200) =>
     buscar<Candles>(

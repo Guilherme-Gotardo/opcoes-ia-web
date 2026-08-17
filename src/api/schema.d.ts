@@ -387,6 +387,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/enriquecimento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Enriquecimento
+         * @description Contexto quantitativo da última execução da avaliação.
+         *
+         *     Uma execução por vez, não a união do dia: rodar de novo SUBSTITUI a
+         *     leitura. Somar rodadas mostraria a mesma opção duas vezes com números
+         *     ligeiramente diferentes, e ninguém saberia qual é a de agora — é a mesma
+         *     razão de `ultima_execucao_do_dia` existir no desfecho.
+         */
+        get: operations["enriquecimento_enriquecimento_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/parametros": {
         parameters: {
             query?: never;
@@ -683,6 +708,96 @@ export interface components {
              * @description Obrigatório em `recomprada`: é o que se pagou para sair. Sem ele o resultado sairia superestimado
              */
             preco_fechamento?: number | null;
+        };
+        /**
+         * EnriquecimentoItemResposta
+         * @description Contexto quantitativo de UMA opção. Todo número é opcional: `None`
+         *     quer dizer "não deu para calcular", e `ressalvas` diz por quê.
+         */
+        EnriquecimentoItemResposta: {
+            /** Codigo Opcao */
+            codigo_opcao: string;
+            /** Ticker Objeto */
+            ticker_objeto: string;
+            /** Tipo */
+            tipo?: string | null;
+            /** Strike */
+            strike?: number | null;
+            /** Vencimento */
+            vencimento?: string | null;
+            /** Preco Mercado */
+            preco_mercado?: number | null;
+            /** Preco Teorico */
+            preco_teorico?: number | null;
+            /**
+             * Delta Modelo
+             * @description Delta do MODELO. Não confundir com `opcoes.delta`, que vem do provedor e é o que o critério de gate consome
+             */
+            delta_modelo?: number | null;
+            /** Gamma */
+            gamma?: number | null;
+            /**
+             * Theta Dia
+             * @description Por dia corrido
+             */
+            theta_dia?: number | null;
+            /**
+             * Vega Pp
+             * @description Por ponto percentual de vol
+             */
+            vega_pp?: number | null;
+            /**
+             * Rho Pp
+             * @description Por ponto percentual de juro
+             */
+            rho_pp?: number | null;
+            /**
+             * Prob Exercicio Vencimento
+             * @description Risco-neutra, SÓ no vencimento — não inclui exercício antecipado em contrato americano
+             */
+            prob_exercicio_vencimento?: number | null;
+            /** Iv Percentil 252D */
+            iv_percentil_252d?: number | null;
+            /** Skew Vs Cadeia */
+            skew_vs_cadeia?: number | null;
+            /** Volatilidade Usada */
+            volatilidade_usada?: number | null;
+            /** Estilo Exercicio */
+            estilo_exercicio?: string | null;
+            /** Ressalvas */
+            ressalvas?: string[];
+        };
+        /**
+         * EnriquecimentoResposta
+         * @description Contexto quantitativo da última execução da avaliação.
+         *
+         *     NÃO é critério. Os números aqui não aprovaram nem reprovaram nada — quem
+         *     decide é `criterios_json`, em `/sugestoes` e `/desfecho`. A separação é a
+         *     razão de existir um recurso próprio: misturar os dois faria um número de
+         *     contexto parecer um critério que alguém precisou passar.
+         */
+        EnriquecimentoResposta: {
+            /**
+             * Disponivel
+             * @description False quando a migração 008 não foi aplicada neste banco
+             */
+            disponivel: boolean;
+            /** Executado Em */
+            executado_em?: string | null;
+            /**
+             * Modelo
+             * @description Ex.: 'CRR-binomial-1024'
+             */
+            modelo?: string | null;
+            /**
+             * Taxa Livre Risco
+             * @description Fração ao ano usada no desconto
+             */
+            taxa_livre_risco?: number | null;
+            /** Taxa Observada Em */
+            taxa_observada_em?: string | null;
+            /** Itens */
+            itens?: components["schemas"]["EnriquecimentoItemResposta"][];
         };
         /** EventoResultadoResposta */
         EventoResultadoResposta: {
@@ -1737,6 +1852,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperacoesResposta"];
+                };
+            };
+        };
+    };
+    enriquecimento_enriquecimento_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnriquecimentoResposta"];
                 };
             };
         };

@@ -1789,6 +1789,43 @@
   font-size: 11.5px;
 }
 
+/* Ressalvas do enriquecimento: sob que premissas os números valem.
+   Recuadas e discretas, mas NÃO escondidas atrás de um ícone — são o que
+   separa número calculado de número assumido, e a diferença entre
+   "P(ITM) = 54%" e "54%, sem contar exercício antecipado" só existe se
+   estiver escrita. */
+.ressalvas {
+  margin-block-start: 16px;
+  padding: 12px 14px;
+  border-inline-start: 2px solid var(--borda-forte);
+  background: var(--superficie-2);
+  border-radius: 0 var(--raio-p) var(--raio-p) 0;
+}
+
+.ressalvas__titulo {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--tinta-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ressalvas ul {
+  margin: 0;
+  padding-inline-start: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ressalvas li {
+  font-size: 12.5px;
+  color: var(--tinta-3);
+  line-height: 1.5;
+}
+
 /* Execuções do pipeline reusam a lista de coletas, mas NÃO a grade: lá a
    terceira coluna tem 90px porque o valor é "1 hoje"; aqui ela carrega uma
    frase ("fim de semana (domingo)", "0 sugestão(ões) de 0 par(es)"), e nos
