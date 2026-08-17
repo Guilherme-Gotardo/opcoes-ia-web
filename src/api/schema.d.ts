@@ -452,6 +452,32 @@ export interface components {
              */
             criado_em: string;
         };
+        /**
+         * AutomacaoResposta
+         * @description Execução automática do pipeline — o que `rastreia_falhas` não cobre.
+         *
+         *     Diferente das coletas acima, aqui a falha É registrada: cada disparo grava
+         *     uma linha antes de começar e a fecha com o desfecho. É o que permite
+         *     distinguir "pulou porque não era pregão" de "quebrou" de "nunca rodou".
+         */
+        AutomacaoResposta: {
+            /**
+             * Disponivel
+             * @description False quando a migração 007 não foi aplicada neste banco
+             */
+            disponivel: boolean;
+            /** Rodou Hoje */
+            rodou_hoje: boolean;
+            ultima?: components["schemas"]["ExecucaoResposta"] | null;
+            /** Recentes */
+            recentes?: components["schemas"]["ExecucaoResposta"][];
+            /**
+             * Interrompidas
+             * @description Abertas há mais de uma hora e nunca encerradas: processos mortos no meio (OOM, kill, máquina desligada)
+             */
+            interrompidas?: components["schemas"]["ExecucaoResposta"][];
+            calendario?: components["schemas"]["CalendarioPregaoResposta"] | null;
+        };
         /** CaixaEntrada */
         CaixaEntrada: {
             /**
@@ -480,6 +506,39 @@ export interface components {
             garante_put: boolean;
             /** Lancamentos */
             lancamentos: components["schemas"]["LancamentoResposta"][];
+        };
+        /**
+         * CalendarioPregaoResposta
+         * @description Estado do calendário que decide se há pregão.
+         *
+         *     `anos_derivados` existe porque derivado não pode passar por conferido: as
+         *     datas funcionam, mas não foram batidas contra a fonte oficial — a mesma
+         *     distinção que `earnings` faz entre estimado e confirmado.
+         */
+        CalendarioPregaoResposta: {
+            /**
+             * Vigencia De
+             * Format: date
+             */
+            vigencia_de: string;
+            /**
+             * Vigencia Ate
+             * Format: date
+             */
+            vigencia_ate: string;
+            /** Conferido Em */
+            conferido_em: string | null;
+            /** Anos Conferidos */
+            anos_conferidos: number[];
+            /** Anos Derivados */
+            anos_derivados: number[];
+            /** Fonte */
+            fonte: string;
+            /**
+             * Erro
+             * @description Preenchido quando o arquivo não pôde ser lido. Nesse estado NENHUM disparo roda: sem calendário não há como distinguir dia útil de feriado
+             */
+            erro?: string | null;
         };
         /** CanalColetaResposta */
         CanalColetaResposta: {
@@ -672,6 +731,40 @@ export interface components {
             atualizado_em: string;
             /** Fontes */
             fontes: components["schemas"]["FonteResultadoResposta"][];
+        };
+        /**
+         * ExecucaoResposta
+         * @description Um disparo do pipeline de pregão (`execucao_pipeline`, migração 007).
+         */
+        ExecucaoResposta: {
+            /** Id */
+            id: number;
+            /**
+             * Iniciado Em
+             * Format: date-time
+             */
+            iniciado_em: string;
+            /**
+             * Encerrado Em
+             * @description NULL com status='executando' é o rastro de um processo que morreu no meio — a linha abre ANTES do trabalho
+             */
+            encerrado_em?: string | null;
+            /**
+             * Status
+             * @description executando | executado | pulado_fora_de_pregao | falhou
+             */
+            status: string;
+            /** Gatilho */
+            gatilho: string;
+            /** Duracao S */
+            duracao_s?: number | null;
+            /**
+             * Detalhe
+             * @description Resumo por etapa: janela, orçamento, avaliação; erro e traceback quando o status é 'falhou'
+             */
+            detalhe?: {
+                [key: string]: unknown;
+            };
         };
         /**
          * FonteResultadoResposta
@@ -993,11 +1086,10 @@ export interface components {
          * SaudeColetaResposta
          * @description Saúde da coleta, derivada do dado que já existe.
          *
-         *     Este recurso NÃO é um log de execução: o projeto não grava tentativas,
-         *     erros nem duração. Ele responde "quando cada fonte entregou dado pela
-         *     última vez", que é o que o banco realmente sabe. `rastreia_falhas`
-         *     declara esse limite no próprio contrato para que a interface não
-         *     apresente silêncio como se fosse saúde.
+         *     Para as COLETAS este recurso não é um log: o projeto não grava tentativa
+         *     nem erro por fonte, então ele responde "quando cada fonte entregou dado
+         *     pela última vez", que é o que o banco sabe. Para a EXECUÇÃO do pipeline
+         *     de pregão, `automacao` é um log de verdade — ver `AutomacaoResposta`.
          */
         SaudeColetaResposta: {
             /** Coletas */
@@ -1005,9 +1097,10 @@ export interface components {
             orcamento: components["schemas"]["OrcamentoResposta"];
             /** Ultima Avaliacao Em */
             ultima_avaliacao_em: string | null;
+            automacao: components["schemas"]["AutomacaoResposta"];
             /**
              * Rastreia Falhas
-             * @description Sempre False: nada registra execução com erro. Fonte sem entrega recente pode estar quebrada OU apenas sem novidade — o banco não distingue os dois casos
+             * @description Sempre False, e é sobre as COLETAS: nada registra falha por fonte. Fonte sem entrega recente pode estar quebrada OU apenas sem novidade, e o banco não distingue os dois. A execução do pipeline, essa sim, é rastreada em `automacao` — não confunda os dois escopos
              * @default false
              */
             rastreia_falhas: boolean;

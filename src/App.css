@@ -1789,6 +1789,50 @@
   font-size: 11.5px;
 }
 
+/* Execuções do pipeline reusam a lista de coletas, mas NÃO a grade: lá a
+   terceira coluna tem 90px porque o valor é "1 hoje"; aqui ela carrega uma
+   frase ("fim de semana (domingo)", "0 sugestão(ões) de 0 par(es)"), e nos
+   90px a frase quebrava em quatro linhas. É a coluna que precisa do espaço
+   livre, então é ela que leva o 1fr. */
+.execucao {
+  display: grid;
+  grid-template-columns: minmax(150px, auto) minmax(110px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding-block: 10px;
+  border-block-end: 1px solid var(--borda);
+  font-size: 13px;
+}
+
+.execucao:last-child {
+  border-block-end: 0;
+}
+
+.execucao__resumo {
+  color: var(--tinta-2);
+  /* Alinhado à esquerda, ao contrário de `.coleta__hoje`: é texto corrido,
+     e texto corrido alinhado à direita fica difícil de varrer numa lista. */
+  text-align: start;
+}
+
+@media (max-width: 720px) {
+  /* Quatro colunas não cabem no celular. Vira 2×2 — identidade | quando na
+     primeira linha, resumo | duração na segunda —, em vez de espremer a
+     frase de volta para o problema que a grade resolveu.
+
+     Sem `grid-column` nenhum aqui de propósito: com duas colunas, os quatro
+     filhos já caem nessa ordem sozinhos. Mandar o resumo ocupar `1 / -1`
+     empurrava o selo para uma terceira linha, onde ele esticava pela
+     largura toda em vez de ficar ao lado do texto que ele qualifica. */
+  .execucao {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .execucao .selo {
+    justify-self: end;
+  }
+}
+
 .rodape__icone--neutro {
   color: var(--tinta-3);
 }

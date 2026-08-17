@@ -24,6 +24,9 @@ export type PendenteConsolidacao =
   components["schemas"]["PendenteConsolidacaoResposta"];
 export type SaudeColeta = components["schemas"]["SaudeColetaResposta"];
 export type CanalColeta = components["schemas"]["CanalColetaResposta"];
+export type Automacao = components["schemas"]["AutomacaoResposta"];
+export type Execucao = components["schemas"]["ExecucaoResposta"];
+export type CalendarioPregao = components["schemas"]["CalendarioPregaoResposta"];
 export type Operacoes = components["schemas"]["OperacoesResposta"];
 export type Operacao = components["schemas"]["OperacaoResposta"];
 export type Perna = components["schemas"]["PernaResposta"];
