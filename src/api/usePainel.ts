@@ -16,6 +16,7 @@ import {
   type Cotacao,
   type Desfecho,
   type Enriquecimento,
+  type RelatorioAgente,
   type Ativo,
   type Caixa,
   type Operacoes,
@@ -55,6 +56,7 @@ export type Painel = {
   watchlist: Recurso<Watchlist>;
   caixa: Recurso<Caixa>;
   enriquecimento: Recurso<Enriquecimento>;
+  relatorio: Recurso<RelatorioAgente>;
   posicoesAbertas: Recurso<PosicaoAberta[]>;
   /** Quando a tela buscou — não quando o dado foi coletado na origem. */
   buscadoEm: Date | null;
@@ -77,6 +79,7 @@ export function usePainel(): Painel {
   const [watchlist, setWatchlist] = useState<Recurso<Watchlist>>(vazio);
   const [caixa, setCaixa] = useState<Recurso<Caixa>>(vazio);
   const [enriquecimento, setEnriquecimento] = useState<Recurso<Enriquecimento>>(vazio);
+  const [relatorio, setRelatorio] = useState<Recurso<RelatorioAgente>>(vazio);
   const [posicoesAbertas, setPosicoesAbertas] = useState<Recurso<PosicaoAberta[]>>(vazio);
   const [buscadoEm, setBuscadoEm] = useState<Date | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -99,7 +102,8 @@ export function usePainel(): Painel {
       resolver(api.watchlist()),
       resolver(api.caixa()),
       resolver(api.enriquecimento()),
-    ]).then(([c, q, s, d, r, o, ops, p, at, pa, wl, cx, en]) => {
+      resolver(api.relatorio()),
+    ]).then(([c, q, s, d, r, o, ops, p, at, pa, wl, cx, en, rel]) => {
       if (cancelado) return;
       setCarteira(c);
       setCotacoes(q);
@@ -114,6 +118,7 @@ export function usePainel(): Painel {
       setWatchlist(wl);
       setCaixa(cx);
       setEnriquecimento(en);
+      setRelatorio(rel);
       setBuscadoEm(new Date());
       setCarregando(false);
     });
@@ -139,13 +144,14 @@ export function usePainel(): Painel {
     watchlist,
     caixa,
     enriquecimento,
+    relatorio,
     buscadoEm,
     carregando,
     apiFora:
       buscadoEm != null &&
       [carteira, cotacoes, sugestoes, desfecho, resultados, saudeColeta,
        operacoes, parametros, ativos, posicoesAbertas, watchlist,
-       caixa, enriquecimento].every((r) => r.erro != null),
+       caixa, enriquecimento, relatorio].every((r) => r.erro != null),
     atualizar,
   };
 }

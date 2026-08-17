@@ -1789,6 +1789,64 @@
   font-size: 11.5px;
 }
 
+/* Texto corrido do relatório do agente.
+   Medida limitada em ~72ch: linha longa demais faz o olho perder a volta, e
+   este é o único bloco da interface que se lê de ponta a ponta em vez de
+   varrer. O resto da tela é tabela e número, onde a largura ajuda. */
+.prosa {
+  max-inline-size: 72ch;
+  color: var(--tinta-2);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.prosa > :first-child {
+  margin-block-start: 0;
+}
+
+.prosa > :last-child {
+  margin-block-end: 0;
+}
+
+.prosa p {
+  margin-block: 0 12px;
+}
+
+.prosa h3,
+.prosa h4 {
+  margin-block: 20px 8px;
+  color: var(--tinta);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.prosa h4 {
+  font-size: 13px;
+  color: var(--tinta-2);
+}
+
+.prosa ul {
+  margin-block: 0 12px;
+  padding-inline-start: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prosa strong {
+  color: var(--tinta);
+  font-weight: 600;
+}
+
+.prosa code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  padding: 1px 5px;
+  border-radius: var(--raio-p);
+  background: var(--superficie-3);
+  color: var(--tinta);
+}
+
 /* Ressalvas do enriquecimento: sob que premissas os números valem.
    Recuadas e discretas, mas NÃO escondidas atrás de um ícone — são o que
    separa número calculado de número assumido, e a diferença entre

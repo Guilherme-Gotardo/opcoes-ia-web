@@ -10,6 +10,7 @@ import { Esqueleto, Estado } from "../componentes/Estado";
 import { IconeAlerta, IconeX } from "../componentes/Icones";
 import { Exposicao } from "../modulos/Exposicao";
 import { Patrimonio } from "../modulos/Patrimonio";
+import { RelatorioAgente } from "../modulos/RelatorioAgente";
 
 export function Carteira() {
   const painel = usePainelDaTela();
@@ -57,6 +58,13 @@ export function Carteira() {
         executadoEm={painel.desfecho.dado?.executado_em ?? null}
       />
       <Exposicao carteira={carteira} />
+      {/* Por último, não primeiro: os números vêm antes da leitura sobre
+          eles. Abrir a tela com o texto do modelo daria a ele a primeira
+          palavra sobre uma carteira que ele não apurou. */}
+      <RelatorioAgente
+        relatorio={painel.relatorio.dado}
+        erro={painel.relatorio.erro}
+      />
     </>
   );
 }

@@ -37,6 +37,8 @@ export type Watchlist = components["schemas"]["WatchlistResposta"];
 export type Candidato = components["schemas"]["CandidatoResposta"];
 export type Caixa = components["schemas"]["CaixaResposta"];
 export type Enriquecimento = components["schemas"]["EnriquecimentoResposta"];
+export type RelatorioAgente =
+  components["schemas"]["RelatorioAgenteResposta"];
 export type EnriquecimentoItem =
   components["schemas"]["EnriquecimentoItemResposta"];
 export type Lancamento = components["schemas"]["LancamentoResposta"];
@@ -110,6 +112,7 @@ export const api = {
     ),
   caixa: () => buscar<Caixa>("/caixa"),
   enriquecimento: () => buscar<Enriquecimento>("/enriquecimento"),
+  relatorio: () => buscar<RelatorioAgente>("/relatorio"),
   posicoes: () => buscar<PosicaoAberta[]>("/posicoes"),
   candles: (ticker: string, intervalo: string, limite = 200) =>
     buscar<Candles>(

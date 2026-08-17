@@ -412,6 +412,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/relatorio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Relatorio
+         * @description O relatório mais recente composto pelo agente.
+         *
+         *     O mais recente, não o de hoje: se o pipeline não rodou hoje, mostrar
+         *     vazio esconderia o de ontem — que continua sendo a última leitura
+         *     disponível. `data` e `gerado_em` dizem de quando é, e a interface avisa
+         *     quando está velho.
+         */
+        get: operations["relatorio_relatorio_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/parametros": {
         parameters: {
             query?: never;
@@ -910,6 +935,36 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /**
+         * InsumoResumoResposta
+         * @description Quanto o agente tinha na frente quando escreveu.
+         *
+         *     Campos explícitos em vez de `dict` livre: um dicionário sem forma vira
+         *     `{}` nos tipos gerados do TypeScript, e a interface perde a checagem
+         *     justamente no dado que ela precisa exibir.
+         */
+        InsumoResumoResposta: {
+            /**
+             * Sugestoes
+             * @default 0
+             */
+            sugestoes: number;
+            /**
+             * Desfecho
+             * @default 0
+             */
+            desfecho: number;
+            /**
+             * Enriquecimento
+             * @default 0
+             */
+            enriquecimento: number;
+            /**
+             * Lacunas
+             * @default 0
+             */
+            lacunas: number;
+        };
         /** LancamentoResposta */
         LancamentoResposta: {
             /** Id */
@@ -1184,6 +1239,46 @@ export interface components {
             motivo_sem_cotacao: string | null;
             /** Valor */
             valor: number | null;
+        };
+        /**
+         * RelatorioAgenteResposta
+         * @description O relatório do dia composto pelo agente de IA.
+         *
+         *     Autoridade diferente de tudo o mais nesta API: os outros recursos trazem
+         *     o que o sistema APUROU; este traz uma leitura sobre aquilo, escrita por
+         *     um modelo de linguagem. `modelo` e `fontes` viajam junto porque texto de
+         *     LLM sem procedência não é auditável — meses depois ninguém saberia qual
+         *     modelo escreveu nem o que ele consultou.
+         */
+        RelatorioAgenteResposta: {
+            /**
+             * Disponivel
+             * @description False quando a migração 009 não foi aplicada neste banco
+             */
+            disponivel: boolean;
+            /** Data */
+            data?: string | null;
+            /** Gerado Em */
+            gerado_em?: string | null;
+            /**
+             * Texto
+             * @description Markdown
+             */
+            texto?: string | null;
+            /** Modelo */
+            modelo?: string | null;
+            /**
+             * Fontes
+             * @description URLs que a busca web trouxe e o agente citou. Vazio quer dizer que o texto saiu só do insumo interno
+             */
+            fontes?: string[];
+            /**
+             * Buscas
+             * @default 0
+             */
+            buscas: number;
+            /** @description Contagens do que o agente tinha na frente */
+            insumo_resumo?: components["schemas"]["InsumoResumoResposta"];
         };
         /** ResultadosResposta */
         ResultadosResposta: {
@@ -1872,6 +1967,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EnriquecimentoResposta"];
+                };
+            };
+        };
+    };
+    relatorio_relatorio_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelatorioAgenteResposta"];
                 };
             };
         };
