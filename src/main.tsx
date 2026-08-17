@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import App from "./App.tsx";
+import { AuthProvider, CallbackAuth, ExigirLogin } from "./auth/AuthProvider";
 import { Carteira } from "./paginas/Carteira";
 import { Estrategia } from "./paginas/Estrategia";
 import { Mercado } from "./paginas/Mercado";
@@ -16,23 +17,31 @@ import "./index.css";
  * contexto do Outlet — ver a nota em `App.tsx`.
  */
 const router = createBrowserRouter([
+  { path: "/auth/callback", element: <CallbackAuth /> },
   {
-    path: "/",
-    element: <App />,
+    element: <ExigirLogin />,
     children: [
-      { index: true, element: <Carteira /> },
-      { path: "acoes", element: <Acoes /> },
-      { path: "opcoes", element: <Opcoes /> },
-      { path: "estrategia", element: <Estrategia /> },
-      { path: "mercado", element: <Mercado /> },
-      // Endereço desconhecido cai na carteira em vez de tela em branco.
-      { path: "*", element: <Carteira /> },
+      {
+        path: "/",
+        element: <App />,
+        children: [
+          { index: true, element: <Carteira /> },
+          { path: "acoes", element: <Acoes /> },
+          { path: "opcoes", element: <Opcoes /> },
+          { path: "estrategia", element: <Estrategia /> },
+          { path: "mercado", element: <Mercado /> },
+          // Endereço desconhecido cai na carteira em vez de tela em branco.
+          { path: "*", element: <Carteira /> },
+        ],
+      },
     ],
   },
 ]);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </StrictMode>,
 );

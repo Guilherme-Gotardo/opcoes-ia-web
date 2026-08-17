@@ -19,11 +19,11 @@ Substitui as CLIs de entrada manual (`assets.manage`, `portfolio.manage`,
 
 ## Contexto de uso
 
-Ferramenta de **um usuário só**, rodando **na máquina do usuário**. Não há
-cadastro, autenticação ou multi-tenancy, e isso é decisão deliberada: sem
-exposição pública, o que protege os dados é a aplicação não ter porta aberta
-para a internet. Se um dia isso mudar, vira uma change própria no
-repositório principal, com o trade-off documentado.
+Ferramenta de **um usuário só**, publicada no Cloudflare Pages. O bundle e
+publico, mas nenhum dado vem nele: Cognito exige authorization code + PKCE,
+senha e TOTP antes de a API Gateway aceitar leitura ou escrita. O browser guarda
+somente o access token e sua expiracao em `sessionStorage`; nao existe client
+secret, credencial AWS ou string do banco neste repositorio.
 
 ## Stack
 
@@ -33,7 +33,7 @@ repositório principal, com o trade-off documentado.
 
 ## Rodando
 
-Precisa da API do projeto principal no ar:
+No modo local, Cognito fica desligado e a API continua em loopback:
 
 ```bash
 # no repositório opcoes-ia
@@ -43,6 +43,12 @@ python -m src.api          # sobe em http://127.0.0.1:8000
 npm install
 npm run dev                # http://localhost:5173
 ```
+
+O build de producao usa as configuracoes publicas de `.env.production`: endpoint
+regional `execute-api`, Hosted UI, app client sem secret, callback
+`/auth/callback` e logout. Antes de publicar, a API e o app client precisam ter
+exatamente a origem/callback `https://opcoes-ia-web.pages.dev` e o escopo
+`opcoes-ia/api`.
 
 ## Tipos gerados do contrato
 

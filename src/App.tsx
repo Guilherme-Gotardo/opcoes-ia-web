@@ -31,6 +31,7 @@
  */
 import { NavLink, Outlet } from "react-router-dom";
 import { usePainel } from "./api/usePainel";
+import { useAuth } from "./auth/AuthContext";
 import {
   IconeAtualizar,
   IconeLua,
@@ -45,6 +46,7 @@ import "./App.css";
 
 export default function App() {
   const painel = usePainel();
+  const { sair } = useAuth();
   const { escuro, alternar } = useTema();
 
   return (
@@ -87,6 +89,10 @@ export default function App() {
           >
             <IconeAtualizar className={painel.carregando ? "girando" : undefined} />
             {painel.carregando ? "Atualizando…" : "Atualizar"}
+          </button>
+
+          <button type="button" className="botao" onClick={sair}>
+            Sair
           </button>
 
           <button

@@ -17,6 +17,66 @@
   min-block-size: 100svh;
 }
 
+.auth {
+  min-block-size: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(135deg, var(--acento-suave), transparent 46%),
+    var(--plano);
+}
+
+.auth__cartao {
+  inline-size: min(100%, 430px);
+  padding: 34px;
+  border: 1px solid var(--borda);
+  border-block-start: 3px solid var(--acento);
+  border-radius: var(--raio-g);
+  background: var(--superficie);
+  box-shadow: var(--sombra-alta);
+}
+
+.auth__marca {
+  display: grid;
+  place-items: center;
+  inline-size: 42px;
+  block-size: 42px;
+  margin-block-end: 28px;
+  border-radius: var(--raio-p);
+  background: var(--acento);
+  color: #fff;
+  font-weight: 700;
+}
+
+.auth__sobretitulo {
+  margin-block-end: 7px;
+  color: var(--acento-tinta);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.auth__texto {
+  margin-block-start: 14px;
+  color: var(--tinta-2);
+}
+
+.auth__acao {
+  inline-size: 100%;
+  margin-block-start: 26px;
+  padding-block: 10px;
+  border-color: var(--acento);
+  background: var(--acento);
+  color: #fff;
+}
+
+.auth__acao:hover:not(:disabled) {
+  background: var(--acento-tinta);
+  color: #fff;
+}
+
 [id] {
   scroll-margin-block-start: calc(var(--topo) + 20px);
 }

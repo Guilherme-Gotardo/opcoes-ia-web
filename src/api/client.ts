@@ -10,6 +10,7 @@
  * tipa.
  */
 import type { components } from "./schema";
+import { accessToken, invalidarSessao } from "../auth/oauth";
 
 export type Carteira = components["schemas"]["CarteiraResposta"];
 export type Posicao = components["schemas"]["PosicaoResposta"];
@@ -50,7 +51,21 @@ export type PosicaoAberta = components["schemas"]["PosicaoAbertaResposta"];
 export type PosicaoEntrada = components["schemas"]["PosicaoEntrada"];
 export type PosicaoCriada = components["schemas"]["PosicaoCriada"];
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
+const BASE_URL = import.meta.env.VITE_API_URL?.trim() ||
+  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+if (!BASE_URL) throw new Error("VITE_API_URL é obrigatória no build de produção.");
+
+function headersAutenticados(corpo = false): HeadersInit {
+  const token = accessToken();
+  return {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(corpo ? { "Content-Type": "application/json" } : {}),
+  };
+}
+
+function verificarSessao(resposta: Response): void {
+  if (resposta.status === 401) invalidarSessao();
+}
 
 /**
  * A API devolve `{"detail": "..."}` nos erros de domínio, e essa mensagem é
@@ -77,7 +92,10 @@ async function erroDaResposta(resposta: Response, caminho: string): Promise<Erro
 }
 
 async function buscar<T>(caminho: string): Promise<T> {
-  const resposta = await fetch(`${BASE_URL}${caminho}`);
+  const resposta = await fetch(`${BASE_URL}${caminho}`, {
+    headers: headersAutenticados(),
+  });
+  verificarSessao(resposta);
   if (!resposta.ok) throw await erroDaResposta(resposta, caminho);
   return (await resposta.json()) as T;
 }
@@ -85,9 +103,10 @@ async function buscar<T>(caminho: string): Promise<T> {
 async function enviar<T>(caminho: string, corpo?: unknown): Promise<T | null> {
   const resposta = await fetch(`${BASE_URL}${caminho}`, {
     method: "POST",
-    headers: corpo === undefined ? {} : { "Content-Type": "application/json" },
+    headers: headersAutenticados(corpo !== undefined),
     body: corpo === undefined ? undefined : JSON.stringify(corpo),
   });
+  verificarSessao(resposta);
   if (!resposta.ok) throw await erroDaResposta(resposta, caminho);
   // 204 (encerrar posição) não tem corpo.
   return resposta.status === 204 ? null : ((await resposta.json()) as T);
