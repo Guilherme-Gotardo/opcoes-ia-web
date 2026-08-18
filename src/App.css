@@ -1251,6 +1251,52 @@
   border-color: color-mix(in srgb, var(--estado-obsoleto) 34%, transparent);
 }
 
+/*
+ * Fora do universo NÃO é o mesmo estado que "coleta falhou": é o
+ * comportamento correto de um ticker onde nenhum ETL vai. Por isso ele
+ * recua (traço, superfície neutra) em vez de sinalizar problema —
+ * pintá-lo como ausência tornaria os dois casos indistinguíveis, que é
+ * exatamente o que a tela fazia antes.
+ */
+.cotacao--fora {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--borda-forte);
+}
+
+.cotacao--fora .cotacao__preco,
+.cotacao--fora .cotacao__ticker {
+  color: var(--tinta-3);
+}
+
+.cotacao__origem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-block-start: 8px;
+  padding-block-start: 8px;
+  border-block-start: 1px solid var(--borda);
+  color: var(--tinta-3);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.cotacao__origem span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cotacao__origem svg {
+  inline-size: 12px;
+  block-size: 12px;
+  flex: none;
+}
+
 .cotacao__topo {
   display: flex;
   align-items: center;
@@ -1443,7 +1489,11 @@
   max-inline-size: 520px;
 }
 
-.bloco {
+/* Trecho de comando para copiar. Chamava-se `.bloco`, o mesmo nome que a
+   seção de cartão adotou depois — duas regras diferentes na mesma classe,
+   e o `<pre>` virava flex enquanto o formulário da watchlist ganhava fundo
+   e fonte mono. */
+.codigo {
   margin: 8px 0;
   padding: 9px 12px;
   border-radius: var(--raio-p);
@@ -2713,40 +2763,154 @@
 
 /* ------------------------------------------------- watchlist e caixa */
 
+/*
+ * `pilha` e `bloco` existem porque `.cartao__corpo` só tem padding, sem
+ * gap: quem empilha três assuntos dentro dele (formulário, lista,
+ * orçamento) os entrega colados, lidos como um parágrafo visual só. A
+ * pilha dá o respiro entre assuntos; o bloco agrupa o que é UM assunto.
+ */
+.pilha {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* O rodapé é do CARTÃO, não da pilha: sangra até a borda para voltar a
+   parecer um rodapé em vez de mais um bloco recuado. */
+.pilha > .cartao__rodape {
+  margin: 4px -18px -18px;
+}
+
+.bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bloco__titulo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tinta-2);
+}
+
+.bloco__contagem {
+  color: var(--tinta-3);
+  font-size: 11.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Uma linha de formulário alinha POR LINHA — rótulo com rótulo, campo com
+ * campo, ajuda com ajuda. O flex anterior alinhava pelo fundo da caixa, e
+ * bastava um campo ter texto de ajuda para o vizinho descer junto: era o
+ * desalinhamento entre "Vigiar ação" e "Motivo".
+ *
+ * O fallback flex vale para navegador sem `subgrid`; o alinhamento fino
+ * pede as linhas compartilhadas.
+ */
 .form--linha {
   flex-direction: row;
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 14px 16px;
 }
 
 .form--linha .form__acoes {
   align-self: flex-end;
 }
 
+@supports (grid-template-rows: subgrid) {
+  .form--linha {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+    grid-template-rows: auto auto auto; /* rótulo · campo · ajuda */
+    align-items: start;
+    column-gap: 16px;
+    row-gap: 6px;
+  }
+
+  .form--linha > .form__campo {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 3;
+    /* Mesmo valor do `row-gap` do pai: navegadores divergem sobre qual dos
+       dois vale no eixo herdado, e valores diferentes desalinhariam
+       justamente as linhas que o subgrid existe para alinhar. */
+    row-gap: 6px;
+    flex: none;
+  }
+
+  /* O botão ocupa a própria faixa: intercalado entre os campos ele cairia
+     na linha dos rótulos, e forçá-lo à linha do campo depende de quantas
+     colunas o `auto-fit` resolveu — que muda com a largura. */
+  .form--linha > .form__acoes {
+    grid-column: 1 / -1;
+    align-self: start;
+    margin-block-start: 4px;
+  }
+}
+
 .vigiados {
   list-style: none;
-  margin: 14px 0 0;
+  margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
 }
 
 .vigiados li {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: var(--raio-p);
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--raio);
   border: 1px solid var(--borda);
   background: var(--superficie-2);
 }
 
+.vigiados__id {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vigiados__nome {
+  color: var(--tinta-2);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.vigiados__motivo {
+  color: var(--tinta-3);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.vigiados__rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-block-start: 2px;
+  padding-block-start: 9px;
+  border-block-start: 1px solid var(--borda);
+}
+
+.vigiados__desde {
+  color: var(--tinta-3);
+  font-size: 11.5px;
+}
+
 .lancamentos {
   list-style: none;
-  margin: 14px 0 0;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;

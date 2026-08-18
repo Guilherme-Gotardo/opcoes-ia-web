@@ -35,6 +35,7 @@ export type Cenario = components["schemas"]["CenarioResposta"];
 export type Orcamento = components["schemas"]["OrcamentoResposta"];
 export type Parametros = components["schemas"]["ParametrosResposta"];
 export type Watchlist = components["schemas"]["WatchlistResposta"];
+export type Vigiado = components["schemas"]["VigiadoResposta"];
 export type Candidato = components["schemas"]["CandidatoResposta"];
 export type Caixa = components["schemas"]["CaixaResposta"];
 export type Enriquecimento = components["schemas"]["EnriquecimentoResposta"];

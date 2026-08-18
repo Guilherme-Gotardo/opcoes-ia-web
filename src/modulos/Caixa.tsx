@@ -91,7 +91,11 @@ export function Caixa({ caixa, erro, aoMudar }: Props) {
       ) : caixa == null ? (
         <Estado titulo="Carregando…" />
       ) : (
-        <>
+        /*
+          Mesma `pilha` da watchlist: aviso, formulário e extrato são três
+          assuntos, e sem espaçamento entre eles a leitura vira um bloco só.
+        */
+        <div className="pilha">
           {!caixa.garante_put && (
             <p className="aviso aviso--obsoleto" role="note">
               <IconeAlerta className="aviso__icone" />
@@ -103,81 +107,105 @@ export function Caixa({ caixa, erro, aoMudar }: Props) {
             </p>
           )}
 
-          <form className="form form--linha" onSubmit={lancar}>
-            <div className="form__campo">
-              <span>Tipo</span>
-              <div className="filtros" role="group" aria-label="Sentido do lançamento">
-                {(["aporte", "retirada"] as const).map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className={`filtro${sentido === s ? " filtro--ativo" : ""}`}
-                    aria-pressed={sentido === s}
-                    onClick={() => setSentido(s)}
-                  >
-                    {s === "aporte" ? "Aporte" : "Retirada"}
-                  </button>
-                ))}
+          <div className="bloco">
+            <form className="form form--linha" onSubmit={lancar}>
+              <div className="form__campo">
+                <span>Tipo</span>
+                <div className="filtros" role="group" aria-label="Sentido do lançamento">
+                  {(["aporte", "retirada"] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className={`filtro${sentido === s ? " filtro--ativo" : ""}`}
+                      aria-pressed={sentido === s}
+                      onClick={() => setSentido(s)}
+                    >
+                      {s === "aporte" ? "Aporte" : "Retirada"}
+                    </button>
+                  ))}
+                </div>
+                <span className="form__ajuda">
+                  O sinal vem do botão, nunca do valor digitado.
+                </span>
               </div>
-            </div>
 
-            <label className="form__campo">
-              <span>Valor</span>
-              <input
-                className="campo"
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={valor}
-                onChange={(e) => setValor(e.target.value)}
-                placeholder="20000.00"
-                required
-              />
-            </label>
+              <label className="form__campo">
+                <span>Valor</span>
+                <input
+                  className="campo"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={valor}
+                  onChange={(e) => setValor(e.target.value)}
+                  placeholder="20000.00"
+                  required
+                />
+                <span className="form__ajuda">Sempre positivo.</span>
+              </label>
 
-            <label className="form__campo form__campo--largo">
-              <span>
-                Descrição <span className="form__opcional">opcional</span>
-              </span>
-              <input
-                className="campo"
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-                placeholder="aporte para garantia de put"
-              />
-            </label>
+              <label className="form__campo">
+                <span>
+                  Descrição <span className="form__opcional">opcional</span>
+                </span>
+                <input
+                  className="campo"
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
+                  placeholder="aporte para garantia de put"
+                />
+                <span className="form__ajuda">
+                  De onde veio ou para onde foi.
+                </span>
+              </label>
 
-            <div className="form__acoes">
-              <button className="botao botao--primario" type="submit" disabled={enviando}>
-                {enviando ? "Registrando…" : "Registrar"}
-              </button>
-            </div>
-          </form>
+              <div className="form__acoes">
+                <button className="botao botao--primario" type="submit" disabled={enviando}>
+                  {enviando ? "Registrando…" : "Registrar"}
+                </button>
+              </div>
+            </form>
 
-          {aviso && (
-            <p className={`form__aviso form__aviso--${aviso.tom}`} role="status">
-              {aviso.tom === "ok" ? <IconeOk /> : <IconeAlerta />}
-              <span>{aviso.texto}</span>
-            </p>
-          )}
+            {aviso && (
+              <p className={`form__aviso form__aviso--${aviso.tom}`} role="status">
+                {aviso.tom === "ok" ? <IconeOk /> : <IconeAlerta />}
+                <span>{aviso.texto}</span>
+              </p>
+            )}
+          </div>
 
-          {caixa.lancamentos.length > 0 && (
-            <ul className="lancamentos">
-              {caixa.lancamentos.map((l) => (
-                <li key={l.id}>
-                  <span className="lancamentos__quando">{dataHora(l.ocorrido_em)}</span>
-                  <span className="lancamentos__descricao">
-                    {l.descricao || "sem descrição"}
-                  </span>
-                  <span
-                    className={`num valor--${l.valor >= 0 ? "ganho" : "perda"}`}
-                  >
-                    {brlAssinado(l.valor)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="bloco">
+            <h3 className="bloco__titulo">
+              Extrato
+              {caixa.lancamentos.length > 0 && (
+                <span className="bloco__contagem">
+                  {caixa.lancamentos.length} · saldo {brl(caixa.saldo)}
+                </span>
+              )}
+            </h3>
+            {caixa.lancamentos.length === 0 ? (
+              <Estado icone={<IconeCarteira />} titulo="Nenhum lançamento">
+                O saldo é a soma dos lançamentos — sem nenhum, ele é zero, e zero
+                recusa toda put.
+              </Estado>
+            ) : (
+              <ul className="lancamentos">
+                {caixa.lancamentos.map((l) => (
+                  <li key={l.id}>
+                    <span className="lancamentos__quando">{dataHora(l.ocorrido_em)}</span>
+                    <span className="lancamentos__descricao">
+                      {l.descricao || "sem descrição"}
+                    </span>
+                    <span
+                      className={`num valor--${l.valor >= 0 ? "ganho" : "perda"}`}
+                    >
+                      {brlAssinado(l.valor)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           <p className="cartao__rodape">
             <span>
@@ -186,7 +214,7 @@ export function Caixa({ caixa, erro, aoMudar }: Props) {
               avaliação aceitou ou recusou uma operação.
             </span>
           </p>
-        </>
+        </div>
       )}
     </Cartao>
   );

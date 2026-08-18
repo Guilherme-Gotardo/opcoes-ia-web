@@ -29,12 +29,13 @@ import { Estado } from "../componentes/Estado";
 import { Selo } from "../componentes/Selo";
 import {
   IconeAlerta,
+  IconeCarteira,
   IconeEtiqueta,
   IconeInfo,
   IconeOk,
   IconeX,
 } from "../componentes/Icones";
-import { numero, pct } from "../lib/formato";
+import { data, numero, pct } from "../lib/formato";
 
 type Props = {
   watchlist: WatchlistDado | null;
@@ -60,7 +61,13 @@ export function Watchlist({ watchlist, ativos, erro, aoMudar }: Props) {
 
   // Só oferece o que ainda não está sendo vigiado — repetir o que já está
   // na lista só produziria um "já vigiado" evitável.
-  const candidatos = (ativos ?? []).filter((a) => !vigiados.includes(a.ticker));
+  const jaVigiados = new Set(vigiados.map((v) => v.ticker));
+  const candidatos = (ativos ?? []).filter((a) => !jaVigiados.has(a.ticker));
+  // Candidato que já está no universo sem estar vigiado só pode ter entrado
+  // pela carteira. Vigiá-lo registra a intenção e o motivo, mas não
+  // acrescenta ticker à coleta nem consome orçamento novo — dizer isso no
+  // rótulo é mais barato que descobrir depois que a barra não se moveu.
+  const noUniverso = new Set(universo);
 
   const adicionar = useCallback(
     async (e: React.FormEvent) => {
@@ -120,94 +127,131 @@ export function Watchlist({ watchlist, ativos, erro, aoMudar }: Props) {
       ) : watchlist == null ? (
         <Estado titulo="Carregando…" />
       ) : (
-        <>
-          <form className="form form--linha" onSubmit={adicionar}>
-            <label className="form__campo form__campo--largo">
-              <span>Vigiar ação</span>
-              <select
-                className="campo"
-                value={ticker}
-                onChange={(e) => setTicker(e.target.value)}
-                required
-              >
-                <option value="">Selecione um ativo cadastrado…</option>
-                {candidatos.map((a) => (
-                  <option key={a.ticker} value={a.ticker}>
-                    {a.ticker} — {a.nome}
-                  </option>
-                ))}
-              </select>
-              {candidatos.length === 0 && (
+        /*
+          `pilha` separa os blocos internos. Sem ela o formulário encostava
+          na lista, e a lista no orçamento: três assuntos diferentes lidos
+          como um só parágrafo visual.
+        */
+        <div className="pilha">
+          <div className="bloco">
+            <form className="form form--linha" onSubmit={adicionar}>
+              <label className="form__campo">
+                <span>Vigiar ação</span>
+                <select
+                  className="campo"
+                  value={ticker}
+                  onChange={(e) => setTicker(e.target.value)}
+                  required
+                >
+                  <option value="">Selecione um ativo cadastrado…</option>
+                  {candidatos.map((a) => (
+                    <option key={a.ticker} value={a.ticker}>
+                      {a.ticker} — {a.nome}
+                      {noUniverso.has(a.ticker) && " (já em carteira)"}
+                    </option>
+                  ))}
+                </select>
                 <span className="form__ajuda">
-                  Todos os ativos cadastrados já estão vigiados. Cadastre um novo
-                  ativo acima para vigiá-lo.
+                  {candidatos.length === 0
+                    ? "Todos os ativos cadastrados já estão vigiados — cadastre um novo ativo para vigiá-lo."
+                    : "Só entra o que já está cadastrado: vigiar não cria ativo."}
                 </span>
+              </label>
+
+              <label className="form__campo">
+                <span>
+                  Motivo <span className="form__opcional">recomendado</span>
+                </span>
+                <input
+                  className="campo"
+                  value={motivo}
+                  onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="liquidez alta em opções"
+                />
+                <span className="form__ajuda">
+                  Por que este ticker entrou — a pergunta que aparece meses depois.
+                </span>
+              </label>
+
+              <div className="form__acoes">
+                <button
+                  className="botao botao--primario"
+                  type="submit"
+                  disabled={enviando || ticker === ""}
+                >
+                  {enviando ? "Adicionando…" : "Vigiar"}
+                </button>
+              </div>
+            </form>
+
+            {aviso && (
+              <p className={`form__aviso form__aviso--${aviso.tom}`} role="status">
+                {aviso.tom === "ok" ? <IconeOk /> : <IconeAlerta />}
+                <span>{aviso.texto}</span>
+              </p>
+            )}
+          </div>
+
+          <div className="bloco">
+            <h3 className="bloco__titulo">
+              Ações vigiadas
+              {vigiados.length > 0 && (
+                <span className="bloco__contagem">{numero(vigiados.length)}</span>
               )}
-            </label>
-
-            <label className="form__campo form__campo--largo">
-              <span>
-                Motivo <span className="form__opcional">recomendado</span>
-              </span>
-              <input
-                className="campo"
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                placeholder="liquidez alta em opções; quero comprar abaixo de 30"
-              />
-              <span className="form__ajuda">
-                Por que este ticker entrou — a pergunta que aparece meses depois.
-              </span>
-            </label>
-
-            <div className="form__acoes">
-              <button
-                className="botao botao--primario"
-                type="submit"
-                disabled={enviando || ticker === ""}
-              >
-                {enviando ? "Adicionando…" : "Vigiar"}
-              </button>
-            </div>
-          </form>
-
-          {aviso && (
-            <p className={`form__aviso form__aviso--${aviso.tom}`} role="status">
-              {aviso.tom === "ok" ? <IconeOk /> : <IconeAlerta />}
-              <span>{aviso.texto}</span>
-            </p>
-          )}
-
-          {vigiados.length === 0 ? (
-            <Estado icone={<IconeEtiqueta />} titulo="Nenhuma ação vigiada">
-              Sem watchlist, a análise só olha o que você já tem — e lançar put é
-              justamente sobre ativos que você aceitaria comprar.
-            </Estado>
-          ) : (
-            <ul className="vigiados">
-              {vigiados.map((t) => (
-                <li key={t}>
-                  <span className="tabela__ticker">{t}</span>
-                  <button
-                    type="button"
-                    className="botao botao--discreto"
-                    onClick={() => remover(t)}
-                    disabled={removendo === t}
-                  >
-                    <IconeX />
-                    {removendo === t ? "Removendo…" : "Parar de vigiar"}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+            </h3>
+            {vigiados.length === 0 ? (
+              <Estado icone={<IconeEtiqueta />} titulo="Nenhuma ação vigiada">
+                Sem watchlist, a coleta e a leitura do dia só alcançam o que você
+                já tem em carteira — e lançar put é justamente sobre ativos que
+                você aceitaria comprar.
+              </Estado>
+            ) : (
+              <ul className="vigiados">
+                {vigiados.map((v) => (
+                  <li key={v.ticker}>
+                    <div className="vigiados__id">
+                      <span className="tabela__ticker">{v.ticker}</span>
+                      {v.em_carteira && (
+                        <Selo tom="neutro" icone={<IconeCarteira />}>
+                          já em carteira
+                        </Selo>
+                      )}
+                    </div>
+                    <p className="vigiados__nome">{v.nome}</p>
+                    {/*
+                      O motivo era gravado e nunca mostrado: a tela pedia a
+                      resposta e depois escondia justamente a pergunta que
+                      ela existe para responder.
+                    */}
+                    <p className="vigiados__motivo">
+                      {v.motivo || <em>sem motivo registrado</em>}
+                    </p>
+                    <div className="vigiados__rodape">
+                      <span className="vigiados__desde">
+                        {v.desde ? `vigiado desde ${data(v.desde)}` : "sem data"}
+                      </span>
+                      <button
+                        type="button"
+                        className="botao botao--discreto"
+                        onClick={() => remover(v.ticker)}
+                        disabled={removendo === v.ticker}
+                      >
+                        <IconeX />
+                        {removendo === v.ticker ? "Removendo…" : "Parar de vigiar"}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           {/*
             O orçamento não é detalhe de infraestrutura: é o que limita o
             tamanho da watchlist, e descobri-lo tarde significa a coleta da
             carteira falhando no fim do dia.
           */}
-          <div className="orcamento">
+          <div className="bloco orcamento">
             <div className="orcamento__topo">
               <span className="orcamento__rotulo">Universo coletado por dia</span>
               <span className="orcamento__numeros">
@@ -231,7 +275,7 @@ export function Watchlist({ watchlist, ativos, erro, aoMudar }: Props) {
               vigiar deixaria a posição sem preço.
             </p>
           </div>
-        </>
+        </div>
       )}
     </Cartao>
   );

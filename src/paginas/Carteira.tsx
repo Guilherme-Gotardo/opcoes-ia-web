@@ -26,7 +26,7 @@ export function Carteira() {
       >
         <Estado tom="erro" icone={<IconeX />} titulo="A API do opcoes-ia não respondeu">
           <p>Suba a API no repositório principal e atualize esta página:</p>
-          <pre className="bloco">python -m src.api</pre>
+          <pre className="codigo">python -m src.api</pre>
           <p className="estado__detalhe">{painel.carteira.erro}</p>
         </Estado>
       </Cartao>

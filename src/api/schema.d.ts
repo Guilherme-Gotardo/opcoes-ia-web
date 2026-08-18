@@ -276,6 +276,11 @@ export interface paths {
          * Cotacoes
          * @description Cotação mais recente de cada ativo cadastrado — inclusive os SEM
          *     cotação, representados explicitamente em vez de omitidos.
+         *
+         *     Cada linha diz também se o ticker está no UNIVERSO de coleta
+         *     (`acompanhado` = carteira ∪ vigiados) e por qual das duas portas
+         *     entrou. Sem isso, "cadastrado" e "acompanhado" viravam a mesma coisa na
+         *     tela, e um ativo que nunca será coletado aparecia como coleta falhada.
          */
         get: operations["cotacoes_cotacoes_get"];
         put?: never;
@@ -541,6 +546,16 @@ export interface components {
              * Format: date-time
              */
             criado_em: string;
+            /**
+             * Vigiado
+             * @description Está na watchlist — logo, entra no universo de coleta mesmo sem posição
+             * @default false
+             */
+            vigiado: boolean;
+            /** Vigiado Motivo */
+            vigiado_motivo?: string | null;
+            /** Vigiado Desde */
+            vigiado_desde?: string | null;
         };
         /**
          * AutomacaoResposta
@@ -730,7 +745,16 @@ export interface components {
             /** Resultado Liquido */
             resultado_liquido: number;
         };
-        /** CotacaoResposta */
+        /**
+         * CotacaoResposta
+         * @description Um ativo cadastrado e o preço mais recente dele — se houver.
+         *
+         *     `acompanhado` é o campo que separa duas ausências que a tela mostrava
+         *     iguais: um ticker do UNIVERSO (carteira ∪ vigiados) sem preço é falha
+         *     de coleta; um ticker apenas cadastrado sem preço é o comportamento
+         *     correto — nenhum ETL vai a ele, hoje nem amanhã, até entrar na
+         *     carteira ou na watchlist.
+         */
         CotacaoResposta: {
             /** Ticker */
             ticker: string;
@@ -740,6 +764,29 @@ export interface components {
             coletado_em: string | null;
             /** Tem Cotacao */
             tem_cotacao: boolean;
+            /**
+             * Em Carteira
+             * @description Tem posição em ação aberta — entra no universo mesmo sem estar vigiado, senão parar de vigiar deixaria a posição sem preço
+             * @default false
+             */
+            em_carteira: boolean;
+            /**
+             * Vigiado
+             * @description Está na watchlist (`ativos.vigiado`)
+             * @default false
+             */
+            vigiado: boolean;
+            /**
+             * Vigiado Motivo
+             * @description Por que entrou na watchlist
+             */
+            vigiado_motivo?: string | null;
+            /**
+             * Acompanhado
+             * @description CARTEIRA ∪ VIGIADOS: é o que os ETLs coletam e a varredura percorre. False = cadastrado e nada mais
+             * @default false
+             */
+            acompanhado: boolean;
         };
         /** DesfechoResposta */
         DesfechoResposta: {
@@ -1426,6 +1473,30 @@ export interface components {
             /** Volume */
             volume: number | null;
         };
+        /**
+         * VigiadoResposta
+         * @description Um item da watchlist com o que justifica a presença dele.
+         *
+         *     O motivo era gravado e nunca devolvido: a tela pedia "por que este
+         *     ticker entrou", guardava a resposta e depois mostrava só o código. A
+         *     pergunta que ele existe para responder aparece meses depois — e até
+         *     aqui não havia por onde lê-la sem abrir o banco.
+         */
+        VigiadoResposta: {
+            /** Ticker */
+            ticker: string;
+            /** Nome */
+            nome: string;
+            /** Motivo */
+            motivo: string | null;
+            /** Desde */
+            desde: string | null;
+            /**
+             * Em Carteira
+             * @description Também tem posição aberta — vigiar não muda o universo neste caso, porque a carteira já o inclui
+             */
+            em_carteira: boolean;
+        };
         /** VigiarEntrada */
         VigiarEntrada: {
             /** Ticker */
@@ -1447,7 +1518,7 @@ export interface components {
          */
         WatchlistResposta: {
             /** Vigiados */
-            vigiados: string[];
+            vigiados: components["schemas"]["VigiadoResposta"][];
             /**
              * Universo
              * @description CARTEIRA ∪ VIGIADOS — o que os ETLs coletam e a varredura percorre
